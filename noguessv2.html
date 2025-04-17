@@ -1680,7 +1680,8 @@ async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [
     // Define the base query
     let q = db.collection('leaderboard')
               .where('difficulty', '==', difficulty)
-              .where('score', '>', 0) // Ensure score is positive (valid time)
+              .where('score', '>', 1) // Ensure score is positive (valid time) 
+        //temperarily 1 instead of 0 because of many cheated 1 second scores
               .orderBy('score', 'asc'); // Order by score ascending
 
     // If we have a document to start after (for pagination)
