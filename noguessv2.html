@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minesweeper</title>
+    <!-- Firebase App (include only once) -->
+    <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-app-compat.js"></script>
+    <!-- Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Base Styles (Dark Mode - Now Default) */
+        :root {
+            --bg-color: #333;
+            --container-bg: #444;
+            --grid-border-color: #666;
+            --grid-bg-color: #555;
+            --cell-bg-color: #666;
+            --cell-border-color: #777;
+            --revealed-cell-bg: #555;
+            --revealed-cell-border: #888;
+            --flagged-cell-bg: #4682B4;
+            --flagged-cell-color: #FFD700;
+            --mine-bg-color: #B22222;
+            --mine-revealed-bg: #800000;
+            --mine-revealed-color: white;
+            --incorrect-flag-bg: #A0522D;
+            --incorrect-flag-color: white;
+            --text-color: white;
+            --button-bg: #3e8e41;
+            --button-hover-bg: #2e6e31;
+            --button-text-color: white;
+            --control-border-color: #aaa;
+            --control-bg-color: #444;
+            --cell-pressed-bg: #777; /* Added style for pressed cell */
+        }
+
+        /* Light Mode Styles */
+        .light-mode {
+            --bg-color: #e0e0e0;
+            --container-bg: white;
+            --grid-border-color: #a0a0a0;
+            --grid-bg-color: #c0c0c0;
+            --cell-bg-color: #d0d0d0;
+            --cell-border-color: #f0f0f0;
+            --revealed-cell-bg: #f8f8f8;
+            --revealed-cell-border: #909090;
+            --flagged-cell-bg: #87CEEB;
+            --flagged-cell-color: #B22222;
+            --mine-bg-color: #F08080;
+            --mine-revealed-bg: #DC143C;
+            --mine-revealed-color: white;
+            --incorrect-flag-bg: #FFD700;
+            --incorrect-flag-color: black;
+            --text-color: black;
+            --button-bg: #4CAF50;
+            --button-hover-bg: #3e8e41;
+            --button-text-color: white;
+            --control-border-color: #808080;
+            --control-bg-color: #f0f0f0;
+            --cell-pressed-bg: #e8e8e8; /* Added style for pressed cell */
+        }
+
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation; /* Prevent double-tap zoom */
+        }
+         #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: var(--container-bg);
+            padding: 10px;
+        }
+
+        #grid-container {
+            display: grid;
+            grid-gap: 1px;
+            border: 3px solid var(--grid-border-color);
+            background-color: var(--grid-bg-color);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+             user-select: none;
+             -webkit-tap-highlight-color: transparent;
+             /* touch-action: manipulation; might also be helpful here */
+        }
+
+        .cell {
+            width: 28px;
+            height: 28px;
+            background-color: var(--cell-bg-color);
+            border: 2px outset var(--cell-border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            transition: background-color 0.1s; /* Faster transition */
+        }
+        .cell.pressed { /* Style for when left mouse is down */
+            background-color: var(--cell-pressed-bg);
+            border-style: inset; /* Give pressed appearance */
+        }
+        .cell.revealed {
+            border: 1px solid var(--revealed-cell-border);
+            background-color: var(--revealed-cell-bg);
+            cursor: default;
+        }
+        .cell.flagged {
+            background-color: var(--flagged-cell-bg);
+            color: var(--flagged-cell-color);
+        }
+        .cell.mine {
+            background-color: var(--mine-bg-color);
+        }
+        .cell.mine-revealed {
+            background-color: var(--mine-revealed-bg);
+            color: var(--mine-revealed-color);
+        }
+        .cell.incorrect-flag {
+            background-color: var(--incorrect-flag-bg);
+            color: var(--incorrect-flag-color);
+        }
+        /* Number colors */
+        .cell[data-adjacent="1"] { color: blue; }
+        .cell[data-adjacent="2"] { color: green; }
+        .cell[data-adjacent="3"] { color: red; }
+        .cell[data-adjacent="4"] { color: navy; }
+        .cell[data-adjacent="5"] { color: maroon; }
+        .cell[data-adjacent="6"] { color: teal; }
+        .cell[data-adjacent="7"] { color: black; }
+        .cell[data-adjacent="8"] { color: gray; }
+        /* Light mode number colors */
+        .light-mode .cell[data-adjacent="1"] { color: blue; }
+        .light-mode .cell[data-adjacent="2"] { color: green; }
+        .light-mode .cell[data-adjacent="3"] { color: red; }
+        .light-mode .cell[data-adjacent="4"] { color: navy; }
+        .light-mode .cell[data-adjacent="5"] { color: maroon; }
+        .light-mode .cell[data-adjacent="6"] { color: teal; }
+        .light-mode .cell[data-adjacent="7"] { color: black; }
+        .light-mode .cell[data-adjacent="8"] { color: gray; }
+
+        #controls {
+            display: flex;
+            justify-content: space-around;
+            width: 90%;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        #timer, #mines-left {
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 6px 12px;
+            border: 2px solid var(--control-border-color);
+            background-color: var(--control-bg-color);
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #timer-label, #mines-left-label {
+            font-size: 0.8em;
+            color: var(--text-color);
+            margin-bottom: 2px;
+        }
+
+        #settings {
+            margin-top: 20px;
+        }
+
+        #settings button {
+            padding: 10px 20px;
+            font-size: 1.1em;
+            background-color: var(--button-bg);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+
+        #settings button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+          #settings-panel {
+            display: none;
+            position: fixed;
+            top: 50%; /* Start at 50% */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--container-bg);
+            color: var(--text-color);
+            padding: 25px;
+            border: 2px solid #888;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            z-index: 1000;
+            width: 90%;
+            max-width: 450px;
+            border-radius: 12px;
+            overflow-y: auto;  /* Enable vertical scrolling */
+            max-height: 80vh; /* Limit height to 80% of viewport height */
+
+        }
+        #settings-panel label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        #settings-panel input[type="number"],
+        #settings-panel input[type="range"],
+        #settings-panel input[type="text"] { /* Apply styles to text input too */
+            width: 70px;
+            margin-bottom: 12px;
+            padding: 8px;
+            border: 1px solid #bbb;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+         #settings-panel input[type="text"]{
+             width: calc(100% - 20px); /* Take full width minus padding */
+         }
+
+        #settings-panel input[type="range"] {
+            width: 100%;
+        }
+
+        #settings-panel button {
+            padding: 10px 20px;
+            margin-top: 12px;
+            font-size: 1.1em;
+            background-color: var(--button-bg);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+
+        #settings-panel button:hover {
+            background-color: var(--button-hover-bg);;
+        }
+
+        #settings-panel .setting-group {
+           margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+          #settings-panel .difficulty-buttons {
+            display: flex;
+            justify-content: space-between; /* Evenly space buttons */
+            margin-bottom: 15px;
+        }
+          #settings-panel .difficulty-buttons button {
+            flex: 1; /* Each button takes equal width */
+            margin: 0 5px; /* Space between buttons */
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 999;
+        }
+
+        #message-box {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--container-bg);
+            color: var(--text-color);
+            padding: 25px;
+            border: 2px solid #888;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            text-align: center;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 400px;
+        }
+        #message-box button {
+            padding: 10px 20px;
+            margin-top: 12px;
+            font-size: 1.1em;
+            background-color: var(--button-bg);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+
+        #message-box button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        #message-text {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+
+        }
+
+        /* Toggle switch styles */
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 60px;
+          height: 34px;
+          margin-bottom: 12px;
+          vertical-align: middle; /* Align with label */
+        }
+
+        .switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          -webkit-transition: .4s;
+          transition: .4s;
+          border-radius: 34px;
+        }
+
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 26px;
+          width: 26px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          -webkit-transition: .4s;
+          transition: .4s;
+          border-radius: 50%;
+        }
+
+        input:checked + .slider {
+          background-color: #2196F3;
+        }
+
+        input:focus + .slider {
+          box-shadow: 0 0 1px #2196F3;
+        }
+
+        input:checked + .slider:before {
+          -webkit-transform: translateX(26px);
+          -ms-transform: translateX(26px);
+          transform: translateX(26px);
+        }
+        #settings-panel select{
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        #leaderboard {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #leaderboard h3 {
+            margin-bottom: 10px;
+        }
+
+        #leaderboard table {
+            width: 80%;
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+
+        #leaderboard th, #leaderboard td {
+            padding: 8px;
+            border: 1px solid var(--control-border-color);
+            text-align: center;
+        }
+
+        #leaderboard th {
+            background-color: var(--control-bg-color);
+            color: var(--text-color);
+        }
+        .custom-settings {
+            display: none; /* Initially hidden */
+        }
+
+        .custom-settings.active {
+            display: block; /* Show when active */
+        }
+         #settings-panel #custom-difficulty-label{
+            margin-top: 10px;
+            font-size: 1.1em;
+        }
+        #leaderboard {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #leaderboard h3 {
+            margin-bottom: 10px;
+        }
+
+        #leaderboard table {
+            width: 80%;
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+
+        #leaderboard th, #leaderboard td {
+            padding: 8px;
+            border: 1px solid var(--control-border-color);
+            text-align: center;
+        }
+
+        #leaderboard th {
+            background-color: var(--control-bg-color);
+            color: var(--text-color);
+       }
+      #leaderboard-loading {
+          margin-bottom: 10px;
+      }
+       /* Style for online leaderboard tables */
+      #online-leaderboard-container {
+        display: flex; /* Use flexbox for side-by-side tables */
+        justify-content: space-around; /* Distribute space evenly */
+        flex-wrap: wrap; /* Allow tables to wrap on smaller screens */
+        width: 90%;
+        margin: 20px auto;
+
+      }
+
+      #online-leaderboard-container table {
+        width: 45%; /* Each table takes roughly half the container width */
+        margin-bottom: 20px; /* Space between tables */
+        border-collapse: collapse;
+         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+        #online-leaderboard-container th,
+        #online-leaderboard-container td {
+             padding: 8px;
+              border: 1px solid var(--control-border-color);
+              text-align: center;
+        }
+        #online-leaderboard-container th {
+             background-color: var(--control-bg-color);
+              color: var(--text-color);
+               font-weight: bold;
+        }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        #online-leaderboard-container {
+          flex-direction: column; /* Stack tables vertically on smaller screens */
+        }
+          #online-leaderboard-container table {
+            width: 90%; /* Tables take full width on smaller screens */
+             margin: 10px auto;
+          }
+      }
+       #generation-attempts {
+         margin-left: 10px;
+         font-size: 0.9em;
+         color: #aaa; /* Light gray color */
+        }
+        .light-mode #generation-attempts {
+            color: #555; /* Darker gray for light mode */
+        }
+
+
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="controls">
+            <div id="mines-left">
+                <div id="mines-left-label">Mines</div>
+                <div></div>
+            </div>
+            <div id="timer">
+                 <div id="timer-label">Timer</div>
+                <div>0</div>
+            </div>
+        </div>
+        <div id="grid-container"></div>
+    </div>
+    <div id="settings">
+        <button onclick="toggleSettings()">Settings</button>
+    </div>
+
+      <div id="settings-panel">
+        <h2>Settings</h2>
+        <div class="setting-group difficulty-buttons">
+            <button onclick="setDifficulty('beginner')">Beginner</button>
+            <button onclick="setDifficulty('intermediate')">Intermediate</button>
+            <button onclick="setDifficulty('expert')">Expert</button>
+            <button onclick="setDifficulty('custom')">Custom</button> <!-- Custom Difficulty Button -->
+        </div>
+        <div class="setting-group">
+            <label for="player-name">Your Name:</label>
+            <input type="text" id="player-name" value="Player" placeholder="Enter your name">
+        </div>
+
+        <div class="custom-settings setting-group">
+            <label for="width">Width:</label>
+            <input type="number" id="width" min="5" max="30" value="9">
+            <label for="height">Height:</label>
+            <input type="number" id="height" min="5" max="30" value="9">
+            <label for="mines">Mines:</label>
+            <input type="number" id="mines" min="1" max="99" value="10">
+        </div>
+        <div class="setting-group">
+             <label for="light-mode" style="display: inline-block; margin-right: 10px;">Light Mode:</label>
+             <label class="switch">
+                <input type="checkbox" id="light-mode">
+                <span class="slider"></span>
+             </label>
+        </div>
+        <div class="setting-group">
+             <label for="no-guess-mode" style="display: inline-block; margin-right: 10px;">No Guess Mode:</label>
+             <label class="switch">
+                 <input type="checkbox" id="no-guess-mode">
+                 <span class="slider"></span>
+             </label>
+             <span id="generation-attempts"></span> <!-- To display attempts -->
+        </div>
+
+        <div class="setting-group">
+            <label for="flag-method">Flagging Method:</label>
+            <select id="flag-method" onchange="updateFlagMethod()">
+              <option value="longPress">Long Press</option>
+              <option value="doubleTap">Double Tap</option>
+              <option value="rightClick">Right Click</option>
+            </select>
+        </div>
+
+        <div class="setting-group">
+            <label for="long-press-delay">Long Press Delay (ms):</label>
+            <input type="range" id="long-press-delay" min="100" max="1000" value="500" step="50">
+            <span id="long-press-delay-value">500</span>ms
+        </div>
+
+        <div class="setting-group">
+            <label for="chord-method">Chording Method:</label>
+            <select id="chord-method">
+                <option value="singleTap">Single Tap</option>
+                <option value="doubleTap">Double Tap</option>
+            </select>
+        </div>
+        <button onclick="applySettings()">Apply</button>
+        <button onclick="toggleSettings()">Close</button>
+    </div>
+
+    <div id="overlay"></div>
+     <div id="message-box">
+      <p id="message-text"></p>
+      <button onclick="restartGame()">Restart</button>
+    </div>
+      <div id="online-leaderboard-container">
+        <div id="leaderboard-loading">Loading leaderboards...</div>
+        <div id="leaderboard-error" style="color: red; display: none;">Error loading leaderboards.</div>
+
+        <table>
+            <thead><tr><th colspan="3">Beginner</th></tr></thead>
+            <tbody id="leaderboard-beginner"></tbody>
+        </table>
+
+        <table>
+             <thead><tr><th colspan="3">Intermediate</th></tr></thead>
+            <tbody id="leaderboard-intermediate"></tbody>
+        </table>
+
+        <table>
+            <thead><tr><th colspan="3">Expert</th></tr></thead>
+            <tbody id="leaderboard-expert"></tbody>
+        </table>
+      </div>
+
+      <div id="leaderboard">
+        <h3>Local Leaderboard</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Difficulty</th>
+                    <th>Best Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Beginner</td>
+                    <td id="leaderboard-beginner-local">-</td>
+                </tr>
+                <tr>
+                    <td>Intermediate</td>
+                    <td id="leaderboard-intermediate-local">-</td>
+                </tr>
+                <tr>
+                    <td>Expert</td>
+                    <td id="leaderboard-expert-local">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+     // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM",
+      authDomain: "min3s-d13d8.firebaseapp.com",
+      projectId: "min3s-d13d8",
+      storageBucket: "min3s-d13d8.firebasestorage.app",
+      messagingSenderId: "561325595032",
+      appId: "1:561325595032:web:19657730940427fb4073ed",
+      measurementId: "G-N25M3ZT9NQ"
+    };
+
+    // Initialize Firebase
+    const firebaseApp = firebase.initializeApp(firebaseConfig);
+    const db = firebaseApp.firestore();
+
+    let grid = [];
+    let width = 9;
+    let height = 9;
+    let numMines = 10;
+    let minesLeft = numMines;
+    let timerInterval;
+    let time = 0;
+    let gameStarted = false;
+    let gameOver = false;
+    let firstClick = true;
+    let touchLongPressTimerId = null;
+    let mouseLongPressTimerId = null;
+    let ignoreNextClick = false; // Specifically for preventing click after touch long press
+    let longPressFlaggedThisTouch = false; // Flag set when touch long press timer completes
+    let longPressJustFinishedMouse = false; // Flag for mouse long press completion
+    let isLeftMouseDown = false;
+    let pressedCellElement = null;
+    let initialMouseDownCell = null;
+    let longPressDelay = 500;
+    let flagMethod = "longPress";
+    let chordMethod = "singleTap";
+    let doubleTapChordTimer = null;
+    let doubleTapFlagTimer = null;
+    let currentDifficulty = "beginner";
+    let playerName = "Player";
+    let noGuessMode = false; // Added for No Guess Mode
+    let generationAttempts = 0; // Added for No Guess Mode
+
+
+    function createGrid() {
+      const gridContainer = document.getElementById('grid-container');
+      gridContainer.innerHTML = '';
+      gridContainer.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
+      grid = [];
+
+      for (let y = 0; y < height; y++) {
+        grid[y] = [];
+        for (let x = 0; x < width; x++) {
+          const cell = document.createElement('div');
+          cell.classList.add('cell');
+          cell.dataset.x = x;
+          cell.dataset.y = y;
+          cell.addEventListener('click', handleClick); // Keep click for touch taps
+          cell.addEventListener('mousedown', handleCellMouseDown);
+          cell.addEventListener('contextmenu', handleRightClick);
+          cell.addEventListener('mouseover', handleCellMouseOver);
+          cell.addEventListener('mouseout', handleCellMouseOut);
+
+          // Apply touch/long press listeners based on settings
+          updateFlagMethod(cell, x, y);
+
+          gridContainer.appendChild(cell);
+          grid[y][x] = {
+            isMine: false,
+            isRevealed: false,
+            isFlagged: false,
+            adjacentMines: 0,
+            element: cell,
+          };
+        }
+      }
+      updateMinesLeftDisplay();
+      updateTimerDisplay();
+      gridContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+      document.addEventListener('mouseup', handleDocumentMouseUp);
+    }
+
+    function handleRightClick(event) {
+      event.preventDefault();
+    }
+
+    function handleCellMouseDown(event) {
+        if (gameOver) return;
+
+        const targetCell = event.target.closest('.cell');
+        if (!targetCell) return;
+
+        initialMouseDownCell = targetCell;
+
+        if (event.button === 2) {
+            event.preventDefault();
+            if (flagMethod === 'rightClick' || flagMethod === 'longPress') {
+                handleFlag(event);
+            }
+            return;
+        }
+
+        if (event.button === 0) {
+             if (flagMethod === 'longPress') {
+                 clearTimeout(mouseLongPressTimerId);
+                 longPressJustFinishedMouse = false; // Reset mouse long press flag
+                 mouseLongPressTimerId = setTimeout(() => {
+                     handleFlag(event);
+                     longPressJustFinishedMouse = true; // Set flag specific to mouse
+                     mouseLongPressTimerId = null;
+                     if (pressedCellElement) {
+                        pressedCellElement.classList.remove('pressed');
+                     }
+                     pressedCellElement = null;
+                 }, longPressDelay);
+             }
+
+             isLeftMouseDown = true;
+             pressedCellElement = targetCell;
+             const cellData = grid[parseInt(targetCell.dataset.y)][parseInt(targetCell.dataset.x)];
+             if (!cellData.isRevealed) {
+                pressedCellElement.classList.add('pressed');
+             }
+        }
+    }
+
+    function handleCellMouseOver(event) {
+        if (!isLeftMouseDown || gameOver) return;
+
+        const targetCell = event.target.closest('.cell');
+        if (!targetCell) return;
+
+        const cellData = grid[parseInt(targetCell.dataset.y)][parseInt(targetCell.dataset.x)];
+        if (cellData.isRevealed) {
+             if (pressedCellElement && pressedCellElement !== targetCell) {
+                 pressedCellElement.classList.remove('pressed');
+             }
+             pressedCellElement = null;
+             return;
+        }
+
+        if (targetCell !== pressedCellElement) {
+            if (pressedCellElement) {
+                pressedCellElement.classList.remove('pressed');
+            }
+            targetCell.classList.add('pressed');
+            pressedCellElement = targetCell;
+        }
+    }
+
+    function handleCellMouseOut(event) {
+        if (!isLeftMouseDown || gameOver) return;
+
+        const targetCell = event.target.closest('.cell');
+        if (targetCell === pressedCellElement) {
+             pressedCellElement.classList.remove('pressed');
+             pressedCellElement = null;
+        }
+    }
+
+
+    function handleDocumentMouseUp(event) {
+        if (event.button !== 0 || !isLeftMouseDown) {
+            if (pressedCellElement) {
+                 pressedCellElement.classList.remove('pressed');
+                 pressedCellElement = null;
+            }
+            isLeftMouseDown = false;
+            clearTimeout(mouseLongPressTimerId); // Clear MOUSE long press timer
+            mouseLongPressTimerId = null;
+            initialMouseDownCell = null;
+            return;
+        }
+
+        isLeftMouseDown = false;
+        const mouseUpTargetElement = document.elementFromPoint(event.clientX, event.clientY);
+        const mouseUpCellElement = mouseUpTargetElement ? mouseUpTargetElement.closest('.cell') : null;
+
+        clearTimeout(mouseLongPressTimerId); // Clear any running MOUSE long press timer
+        mouseLongPressTimerId = null;
+
+        if (pressedCellElement) {
+            pressedCellElement.classList.remove('pressed');
+        }
+        pressedCellElement = null;
+        initialMouseDownCell = null;
+
+
+        if (longPressJustFinishedMouse) { // Check MOUSE long press flag
+            longPressJustFinishedMouse = false; // Reset mouse flag
+            return; // Do not reveal/chord if mouse long press just flagged
+        }
+
+        if (gameOver) return;
+
+        if (mouseUpCellElement) {
+            const x = parseInt(mouseUpCellElement.dataset.x);
+            const y = parseInt(mouseUpCellElement.dataset.y);
+
+             if (firstClick) {
+                 handleFirstClick(x, y); // Modified first click handling
+             } else {
+                const cellData = grid[y][x];
+                if (cellData.isRevealed) {
+                     chord(x, y);
+                } else if (!cellData.isFlagged) { // Don't reveal flagged cells on normal click
+                    revealCell(x, y);
+                }
+             }
+        }
+    }
+
+    function handleFirstClick(x, y) {
+         if (!firstClick || gameOver) return;
+
+         const attemptsSpan = document.getElementById('generation-attempts');
+         attemptsSpan.textContent = ''; // Clear previous attempts count
+
+         if (noGuessMode) {
+             generationAttempts = 0;
+             let solvable = false;
+             console.log("No Guess Mode: Starting generation...");
+             attemptsSpan.textContent = 'Generating...';
+             // Use setTimeout to avoid freezing the UI during generation
+             setTimeout(() => {
+                 while (!solvable) {
+                     generationAttempts++;
+                     // Reset mine flags before placing new ones
+                     for (let r = 0; r < height; r++) {
+                         for (let c = 0; c < width; c++) {
+                             grid[r][c].isMine = false;
+                             grid[r][c].adjacentMines = 0;
+                         }
+                     }
+                     placeMines(x, y); // Place mines respecting safe zone
+                     if (isSolvableWithoutGuessing(x, y)) {
+                         solvable = true;
+                         console.log(`No Guess Mode: Solvable grid found after ${generationAttempts} attempts.`);
+                         attemptsSpan.textContent = `(${generationAttempts} attempts)`;
+                         startTimer();
+                         firstClick = false;
+                         revealCell(x, y); // Reveal the first clicked cell
+                     } else {
+                        // Optional: Log attempts or provide feedback if it takes too long
+                        if (generationAttempts % 100 === 0) {
+                            console.log(`No Guess Mode: Attempt ${generationAttempts}...`);
+                            attemptsSpan.textContent = `Generating... (${generationAttempts})`;
+                        }
+                        if (generationAttempts > 10000) { // Safety break
+                             console.error("No Guess Mode: Generation timed out after 10000 attempts.");
+                             alert("Failed to generate a solvable grid in No Guess Mode. Please try reducing density or grid size.");
+                             attemptsSpan.textContent = '(Generation Failed)';
+                             // Optionally restart or revert to normal mode
+                             restartGame(); // Restarting might be simplest
+                             return;
+                        }
+                     }
+                 }
+             }, 0); // Allow UI update before starting loop
+
+         } else {
+             // Normal mode: place mines once
+             placeMines(x, y);
+             startTimer();
+             firstClick = false;
+             revealCell(x, y); // Reveal the first clicked cell
+         }
+     }
+
+    function updateFlagMethod(cell, x, y) {
+        if(!cell){
+            for(let r = 0; r < height; r++){
+                for(let c = 0; c < width; c++){
+                    if (grid[r] && grid[r][c]) {
+                       updateFlagMethod(grid[r][c].element, c, r);
+                    }
+                }
+            }
+            return;
+        }
+
+        cell.removeEventListener('touchstart', handleDoubleTapFlag);
+        removeLongPressListener(cell); // Remove previous listeners (touch and mouse leave)
+
+        if (flagMethod === 'longPress') {
+            addLongPressListener(cell, handleFlag); // Adds TOUCH listeners
+        } else if (flagMethod === 'doubleTap') {
+            cell.addEventListener('touchstart', handleDoubleTapFlag);
+        } else if (flagMethod === 'rightClick') {
+            // Handled in handleCellMouseDown
+        }
+    }
+    function handleDoubleTapFlag(event){
+        if(gameOver || flagMethod !== 'doubleTap') return;
+
+        const targetCell = event.target.closest('.cell');
+        if (!targetCell) return;
+
+        if(doubleTapFlagTimer === null){
+            doubleTapFlagTimer = setTimeout(() => {
+                doubleTapFlagTimer = null;
+                // Don't call handleClick directly, let the natural click/mouseup handle reveal
+            }, 300)
+        }
+        else{
+            clearTimeout(doubleTapFlagTimer);
+            doubleTapFlagTimer = null;
+            handleFlag(event);
+            // Prevent the click/mouseup from revealing after double-tap flag
+             ignoreNextClick = true;
+             if(pressedCellElement){
+                 pressedCellElement.classList.remove('pressed');
+                 pressedCellElement = null;
+             }
+             isLeftMouseDown = false; // Ensure mouse up doesn't trigger reveal
+        }
+    }
+    function handleDoubleTapChord(event){
+        if(gameOver || chordMethod !== 'doubleTap') return;
+
+        const targetCell = event.target.closest('.cell');
+        if (!targetCell) return;
+        const x = parseInt(targetCell.dataset.x);
+        const y = parseInt(targetCell.dataset.y);
+
+         if (doubleTapChordTimer === null) {
+            doubleTapChordTimer = setTimeout(() => {
+                doubleTapChordTimer = null;
+            }, 300);
+        } else {
+            clearTimeout(doubleTapChordTimer);
+            doubleTapChordTimer = null;
+            chord(x, y);
+        }
+    }
+
+    // --- placeMines, isNearSafeZone, calculateAdjacentMines ---
+    function placeMines(safeX, safeY) {
+        let minesPlaced = 0;
+        let availableSquares = [];
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                if (!isNearSafeZone(x, y, safeX, safeY)) {
+                     availableSquares.push({x, y});
+                }
+            }
+        }
+
+        // Shuffle the available squares
+        for (let i = availableSquares.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableSquares[i], availableSquares[j]] = [availableSquares[j], availableSquares[i]];
+        }
+
+        // Place mines in the first 'numMines' shuffled squares
+        for (let i = 0; i < numMines && i < availableSquares.length; i++) {
+            const { x, y } = availableSquares[i];
+            grid[y][x].isMine = true;
+            minesPlaced++;
+        }
+
+        // Ensure the exact number of mines are placed (handles cases where safe zone is large)
+         if (minesPlaced < numMines) {
+             // This should ideally not happen if numMines is validated correctly against grid size - safe zone size
+             console.warn(`Could only place ${minesPlaced} out of ${numMines} mines due to safe zone.`);
+             // In a real scenario, might need to retry or adjust numMines
+         }
+
+        calculateAdjacentMines();
+    }
+
+
+    function isNearSafeZone(x, y, safeX, safeY){
+        for(let dx = -1; dx <= 1; dx++){
+            for(let dy = -1; dy <= 1; dy++){
+                if(x === safeX + dx && y === safeY + dy){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function calculateAdjacentMines() {
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                if (!grid[y][x].isMine) {
+                    let count = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            const newX = x + dx;
+                            const newY = y + dy;
+                            if (newX >= 0 && newX < width && newY >= 0 && newY < height && grid[newY][newX].isMine) {
+                                count++;
+                            }
+                        }
+                    }
+                    grid[y][x].adjacentMines = count;
+                }
+            }
+        }
+    }
+
+    function revealCell(x, y) {
+        if (isNaN(x) || isNaN(y) || x < 0 || x >= width || y < 0 || y >= height) return; // Bounds check
+
+        const cell = grid[y][x];
+
+        if (cell.isRevealed || cell.isFlagged || gameOver) return;
+
+        cell.isRevealed = true;
+        cell.element.classList.remove('pressed'); // Ensure pressed style is removed
+        cell.element.classList.add('revealed');
+
+        if (cell.isMine) {
+            revealAllMines(x, y); // Pass the clicked mine coordinates
+            showMessage("Game Over!");
+            stopTimer();
+            gameOver = true;
+
+        } else {
+            if (cell.adjacentMines > 0) {
+                cell.element.textContent = cell.adjacentMines;
+                cell.element.dataset.adjacent = cell.adjacentMines; // For styling numbers
+            } else {
+                // Propagate reveal for 0-mine neighbors
+                 cell.element.textContent = ''; // Ensure empty for 0
+                 cell.element.dataset.adjacent = 0; // For styling
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        // No need to check (dx === 0 && dy === 0) because revealCell handles isRevealed check
+                        const newX = x + dx;
+                        const newY = y + dy;
+                        // Check bounds before recursive call
+                         if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+                             revealCell(newX, newY);
+                         }
+                    }
+                }
+            }
+        }
+       checkWin(); // Check win condition after every reveal
+    }
+
+   // 'click' event handler PRIMARILY for TOUCH interactions now
+   function handleClick(event) {
+        // --- BUG FIX: Check ignoreNextClick FIRST ---
+        if (ignoreNextClick) {
+            ignoreNextClick = false; // Reset the flag
+            return; // Prevent action after touch long press
+        }
+        // --- END BUG FIX ---
+
+        if (gameOver) return;
+
+        // Ignore left mouse clicks here (handled by mousedown/mouseup)
+        if (event.pointerType === 'mouse' && event.button === 0) {
+             return;
+        }
+
+        const targetCell = event.target.closest('.cell');
+        if (!targetCell) return;
+        const x = parseInt(targetCell.dataset.x);
+        const y = parseInt(targetCell.dataset.y);
+
+        if (firstClick) {
+             handleFirstClick(x, y); // Use the dedicated first click handler
+             return; // First click logic handles reveal/start
+        }
+
+        const cell = grid[y][x];
+
+        // Subsequent touch actions (or non-first clicks if any slip through)
+        if (cell.isRevealed) { // Handle chording
+            if (chordMethod === 'doubleTap') {
+                 handleDoubleTapChord(event);
+            } else {
+                chord(x, y);
+            }
+        } else { // Handle revealing
+             if (flagMethod === 'doubleTap') {
+                  // In double-tap flag mode, a single tap should reveal
+                  if (doubleTapFlagTimer !== null) { // Check if the first tap of a potential double tap
+                     // Let the timeout in handleDoubleTapFlag handle the reveal
+                  } else {
+                      // If it's definitely not part of a double tap, reveal immediately
+                      if (!cell.isFlagged) revealCell(x, y);
+                  }
+             } else {
+                 // For long press or right click, a simple tap reveals
+                 if (!cell.isFlagged) revealCell(x, y);
+             }
+        }
+    }
+
+    function handleFlag(event) {
+      if (gameOver) return;
+
+      const targetCell = event.target.closest('.cell');
+      if (!targetCell) return;
+
+      const x = parseInt(targetCell.dataset.x);
+      const y = parseInt(targetCell.dataset.y);
+      const cell = grid[y][x];
+
+      if (!cell.isRevealed) {
+        if (cell.isFlagged) {
+          cell.isFlagged = false;
+          cell.element.classList.remove('flagged');
+          cell.element.textContent = '';
+          minesLeft++;
+        } else if (minesLeft > 0) { // Only allow flagging if mines are left
+          cell.isFlagged = true;
+          cell.element.classList.add('flagged');
+          cell.element.textContent = '🚩';
+          minesLeft--;
+        }
+        updateMinesLeftDisplay();
+      }
+      checkWin(); // Check win condition after flag change
+    }
+
+     function chord(x, y){
+        if (isNaN(x) || isNaN(y) || x < 0 || x >= width || y < 0 || y >= height) return; // Bounds check
+        const cell = grid[y][x];
+        // Only chord if the cell is revealed and has adjacent mines
+        if(!cell.isRevealed || cell.adjacentMines === 0 || gameOver) return;
+
+        let flaggedNeighbors = 0;
+        let unknownNeighbors = []; // Keep track of neighbours to reveal
+
+         for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const newX = x + dx;
+                const newY = y + dy;
+                 if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+                      const neighbor = grid[newY][newX];
+                      if (neighbor.isFlagged) {
+                           flaggedNeighbors++;
+                      } else if (!neighbor.isRevealed) {
+                           unknownNeighbors.push({x: newX, y: newY});
+                      }
+                 }
+            }
+          }
+
+         // If the number of adjacent flags matches the cell's number, reveal the rest
+         if(flaggedNeighbors === cell.adjacentMines){
+             unknownNeighbors.forEach(neighborPos => {
+                 // IMPORTANT: Reveal directly, don't call chord recursively from here
+                 // Call revealCell to handle mine checks and further propagation
+                 revealCell(neighborPos.x, neighborPos.y);
+             });
+         }
+     }
+
+     function revealAllMines(clickedX, clickedY) {
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                 const cell = grid[y]?.[x]; // Optional chaining for safety
+                 if (cell && cell.element) {
+                     cell.element.classList.remove('pressed'); // Ensure no stuck pressed state
+                     if (cell.isMine) {
+                         if (!cell.isRevealed && !cell.isFlagged) {
+                             cell.element.classList.add('mine-revealed');
+                             cell.element.textContent = "💣";
+                         }
+                         // Highlight the one they clicked
+                         if (x === clickedX && y === clickedY) {
+                             cell.element.classList.add('mine'); // Use the specific 'hit' style if defined, else reuse mine-revealed maybe redder?
+                             cell.element.style.backgroundColor = 'red'; // Make the clicked one stand out
+                         }
+                     } else if (cell.isFlagged) { // Incorrectly flagged
+                         cell.element.classList.remove('flagged');
+                         cell.element.classList.add('incorrect-flag');
+                         cell.element.textContent = 'X';
+                     }
+                 }
+            }
+        }
+    }
+
+   function checkWin() {
+      if (gameOver) return;
+
+      let revealedCount = 0;
+      let correctlyFlaggedMines = 0;
+      let totalMines = 0; // Recalculate actual mines on grid
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+           const cell = grid[y]?.[x];
+           if (cell) {
+                if (cell.isMine) {
+                    totalMines++;
+                    if (cell.isFlagged) {
+                        correctlyFlaggedMines++;
+                    }
+                }
+                if (cell.isRevealed) {
+                    revealedCount++;
+                }
+           }
+        }
+      }
+
+      // Win condition: All non-mine squares are revealed
+      // (Total squares - total mines === revealed squares)
+      const totalSquares = width * height;
+      if (revealedCount === totalSquares - totalMines) {
+          // Double check if all mines are flagged (alternative win condition, good for safety)
+           if(minesLeft === 0 && correctlyFlaggedMines === totalMines) {
+               winGame();
+           } else if (revealedCount === totalSquares - totalMines) {
+               // If all non-mines revealed, auto-flag remaining mines and win
+               winGame(true); // Pass flag to indicate auto-flagging
+           }
+      }
+    }
+
+    function winGame(autoFlag = false) {
+        if (gameOver) return; // Prevent multiple win triggers
+
+        gameOver = true;
+        stopTimer();
+
+        // Auto-flag remaining mines if necessary
+        if (autoFlag) {
+            let flagsPlaced = 0;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cell = grid[y]?.[x];
+                    if (cell && cell.isMine && !cell.isFlagged) {
+                        cell.isFlagged = true;
+                        cell.element.classList.add('flagged');
+                        cell.element.textContent = '🚩';
+                        flagsPlaced++;
+                    }
+                }
+            }
+            minesLeft -= flagsPlaced;
+            updateMinesLeftDisplay();
+        }
+
+        flagIncorrectlyPlaced(); // Still useful to show X on wrong flags even on win
+        updateLeaderboard();
+        showMessage("You Win! Time: " + time + " seconds");
+
+        if (pressedCellElement) { pressedCellElement.classList.remove('pressed'); pressedCellElement = null; }
+        isLeftMouseDown = false;
+    }
+
+
+    function flagIncorrectlyPlaced(){
+        // This is now mostly handled by revealAllMines on loss, but keep for win scenario
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                 const cell = grid[y]?.[x];
+                 if (cell && cell.isFlagged && !cell.isMine) {
+                    cell.element.classList.remove('flagged');
+                    cell.element.classList.add('incorrect-flag');
+                    cell.element.textContent = 'X';
+                 }
+                 // Optionally, ensure all mines ARE flagged on win (if not auto-flagged)
+                 // if (gameOver && cell && cell.isMine && !cell.isFlagged && !cell.isRevealed) {
+                 //     cell.element.classList.add('flagged');
+                 //     cell.element.textContent = '🚩';
+                 // }
+            }
+        }
+    }
+
+    function startTimer() {
+        if (!gameStarted) {
+            gameStarted = true;
+            time = 0; // Reset timer on start
+            updateTimerDisplay();
+            clearInterval(timerInterval); // Clear any existing interval
+            timerInterval = setInterval(() => {
+                if (!gameOver) { // Only increment if game is running
+                    time++;
+                    updateTimerDisplay();
+                } else {
+                    stopTimer(); // Stop if game over flag is set elsewhere
+                }
+            }, 1000);
+        }
+    }
+
+    function stopTimer() {
+       clearInterval(timerInterval);
+       gameStarted = false; // Allow timer to restart on new game
+    }
+
+   // --- Refined Long Press Listener for Touch ---
+   function addLongPressListener(element, callback) {
+       let elementTouchTimerId = null; // Timer ID specific to this element's touch
+       longPressFlaggedThisTouch = false; // Reset this flag for the element
+
+       const handleTouchStart = (e) => {
+           // Only trigger for single touch, and if no timer is already running for this element
+           if (e.touches.length === 1 && elementTouchTimerId === null) {
+               longPressFlaggedThisTouch = false; // Reset on new touch start
+               ignoreNextClick = false;          // Reset ignore flag too
+
+               // Start the timer
+               elementTouchTimerId = setTimeout(() => {
+                   // Timer completed - this is a long press
+                   longPressFlaggedThisTouch = true; // Set flag: timer completed
+                   callback(e);                      // Execute the flag callback
+                   ignoreNextClick = true;           // Set flag to ignore upcoming click/mouseup
+                   elementTouchTimerId = null;       // Timer is done
+
+                   // Prevent context menu on mobile after long press flag
+                   e.preventDefault();
+
+               }, longPressDelay);
+
+                // Add a temporary 'pressed' visual feedback for touch
+                 const targetCell = e.target.closest('.cell');
+                 if (targetCell && !targetCell.classList.contains('revealed') && !targetCell.classList.contains('flagged')) {
+                      targetCell.classList.add('pressed');
+                 }
+           }
+       };
+
+       const handleTouchEnd = (e) => {
+            // Remove temporary 'pressed' visual feedback
+             const targetCell = e.target.closest('.cell');
+             if (targetCell) {
+                  targetCell.classList.remove('pressed');
+             }
+
+
+           if (elementTouchTimerId !== null) {
+               // Timer was cleared *before* it completed (short tap)
+               clearTimeout(elementTouchTimerId);
+               elementTouchTimerId = null;
+               // Let the click handler manage the reveal for short taps
+           } else if (longPressFlaggedThisTouch) {
+                // Long press DID complete, prevent default actions (like click)
+                // e.preventDefault(); // Already done in timer callback if needed
+                longPressFlaggedThisTouch = false; // Reset for next interaction
+                // ignoreNextClick is already true, handleClick will handle it
+           }
+       };
+
+       const handleTouchMove = (e) => {
+            // If touch moves significantly, cancel the long press timer
+           if (elementTouchTimerId !== null) {
+                 // Simple move detection - could be refined with thresholds
+                clearTimeout(elementTouchTimerId);
+                elementTouchTimerId = null;
+                longPressFlaggedThisTouch = false; // Move cancels long press
+                ignoreNextClick = false;         // Don't ignore click if moved
+
+                 // Remove temporary 'pressed' visual feedback if move cancels
+                 const targetCell = e.target.closest('.cell');
+                 if (targetCell) {
+                      targetCell.classList.remove('pressed');
+                 }
+           }
+       };
+
+        // Add Touch Listeners: passive: false needed on touchstart if preventDefault might be called
+        element.addEventListener('touchstart', handleTouchStart, { passive: false });
+        element.addEventListener('touchend', handleTouchEnd);
+        element.addEventListener('touchmove', handleTouchMove); // passive: true might be ok if move only cancels
+
+       // Store handlers for removal
+       element._touchStartHandler = handleTouchStart;
+       element._touchEndHandler = handleTouchEnd;
+       element._touchMoveHandler = handleTouchMove;
+
+       // Mouse long press is handled separately in handleCellMouseDown
+       // Add mouseleave cleanup for mouse long press timer started in mousedown
+        const handleMouseLeave = () => {
+             clearTimeout(mouseLongPressTimerId); // Clear potential MOUSE timer
+             mouseLongPressTimerId = null;
+             longPressJustFinishedMouse = false; // Reset mouse flag
+             if (isLeftMouseDown && pressedCellElement === element) { // If leaving the pressed cell
+                element.classList.remove('pressed');
+                // Keep pressedCellElement assigned until mouseup or mouseover elsewhere
+             }
+        };
+        element.addEventListener('mouseleave', handleMouseLeave);
+        element._mouseLeaveHandlerLP = handleMouseLeave; // Store for removal
+   }
+
+   function removeLongPressListener(element) {
+        // Clear any active touch timer associated with this element (if it exists conceptually)
+        // Note: Direct access to elementTouchTimerId isn't feasible here, rely on cleanup elsewhere.
+
+        if (element._touchStartHandler) {
+            element.removeEventListener('touchstart', element._touchStartHandler, { passive: false }); // Match options
+            delete element._touchStartHandler;
+        }
+        if (element._touchEndHandler) {
+            element.removeEventListener('touchend', element._touchEndHandler);
+            delete element._touchEndHandler;
+        }
+        if (element._touchMoveHandler) {
+            element.removeEventListener('touchmove', element._touchMoveHandler); // Match options used in add
+            delete element._touchMoveHandler;
+        }
+         // Remove mouse leave listener added by this function
+         if (element._mouseLeaveHandlerLP) {
+             element.removeEventListener('mouseleave', element._mouseLeaveHandlerLP);
+             delete element._mouseLeaveHandlerLP;
+         }
+    }
+    // --- END Refined Long Press ---
+
+
+    function toggleSettings() {
+        const settingsPanel = document.getElementById('settings-panel');
+        const overlay = document.getElementById('overlay');
+        if(settingsPanel.style.display === "block") {
+            settingsPanel.style.display = "none";
+            overlay.style.display = 'none';
+        }
+        else {
+            settingsPanel.style.display = "block";
+            overlay.style.display = 'block';
+            document.getElementById('long-press-delay-value').textContent = longPressDelay;
+            if (currentDifficulty === 'custom') {
+               document.querySelector('.custom-settings').classList.add('active');
+            } else {
+               document.querySelector('.custom-settings').classList.remove('active');
+            }
+             // Hide generation attempts text when opening settings
+             document.getElementById('generation-attempts').textContent = '';
+        }
+    }
+    function updateTimerDisplay(){
+        if (document.querySelector('#timer > div:nth-child(2)')) {
+            document.querySelector('#timer > div:nth-child(2)').textContent = time;
+        }
+    }
+    function updateMinesLeftDisplay(){
+         if (document.querySelector('#mines-left > div:nth-child(2)')) {
+            document.querySelector('#mines-left > div:nth-child(2)').textContent = minesLeft < 0 ? 0 : minesLeft; // Prevent negative display
+         }
+    }
+
+    function setDifficulty(difficulty) {
+      currentDifficulty = difficulty;
+      const customSettings = document.querySelector('.custom-settings');
+       document.getElementById('generation-attempts').textContent = ''; // Clear attempts display
+
+      switch (difficulty) {
+        case 'beginner': width = 9; height = 9; numMines = 10; customSettings.classList.remove('active'); break;
+        case 'intermediate': width = 16; height = 16; numMines = 40; customSettings.classList.remove('active'); break;
+        case 'expert': width = 30; height = 16; numMines = 99; customSettings.classList.remove('active'); break;
+        case 'custom':
+          customSettings.classList.add('active');
+            // Don't change w/h/n here, wait for apply or load from storage
+            // Ensure current values are displayed
+            document.getElementById('width').value = width;
+            document.getElementById('height').value = height;
+            document.getElementById('mines').value = numMines;
+            return; // Don't restart yet for custom, wait for Apply
+      }
+        // Update display for non-custom difficulties
+        document.getElementById('width').value = width;
+        document.getElementById('height').value = height;
+        document.getElementById('mines').value = numMines;
+
+        // Save the new standard difficulty immediately
+        localStorage.setItem('currentDifficulty', currentDifficulty);
+        localStorage.setItem('width', width);
+        localStorage.setItem('height', height);
+        localStorage.setItem('numMines', numMines);
+
+        minesLeft = numMines;
+        restartGame();
+    }
+
+   function applySettings() {
+        if (currentDifficulty === 'custom') {
+            const newWidth = parseInt(document.getElementById('width').value);
+            const newHeight = parseInt(document.getElementById('height').value);
+            const newNumMines = parseInt(document.getElementById('mines').value);
+
+             if (isNaN(newWidth) || newWidth < 5 || newWidth > 50) { alert('Width must be between 5 and 50.'); return; } // Increased max size
+             if (isNaN(newHeight) || newHeight < 5 || newHeight > 50) { alert('Height must be between 5 and 50.'); return; } // Increased max size
+             // Ensure at least 9 safe squares for the first click area
+             const maxMines = (newWidth * newHeight) - 9;
+             if (isNaN(newNumMines) || newNumMines < 1 || newNumMines > maxMines) {
+                 alert(`Mines must be between 1 and ${maxMines} (to allow safe start).`);
+                 return;
+              }
+             width = newWidth;
+             height = newHeight;
+             numMines = newNumMines;
+        }
+
+        // --- Save common settings ---
+        playerName = document.getElementById('player-name').value.trim() || "Player";
+        localStorage.setItem('playerName', playerName);
+        document.getElementById('player-name').value = playerName; // Update input field
+
+        const lightModeCheckbox = document.getElementById('light-mode');
+        flagMethod = document.getElementById('flag-method').value;
+        longPressDelay = parseInt(document.getElementById('long-press-delay').value);
+        chordMethod = document.getElementById('chord-method').value;
+        noGuessMode = document.getElementById('no-guess-mode').checked; // Save No Guess Mode state
+
+        localStorage.setItem('darkMode', lightModeCheckbox.checked ? 'enabled' : 'disabled');
+        localStorage.setItem('flagMethod', flagMethod);
+        localStorage.setItem('longPressDelay', longPressDelay);
+        localStorage.setItem('chordMethod', chordMethod);
+        localStorage.setItem('noGuessMode', noGuessMode); // Save No Guess Mode state
+
+        // Always save current difficulty and dimensions (even if standard, in case user switched from custom)
+        localStorage.setItem('currentDifficulty', currentDifficulty);
+        localStorage.setItem('width', width);
+        localStorage.setItem('height', height);
+        localStorage.setItem('numMines', numMines);
+
+        // --- Apply visual settings ---
+        if (lightModeCheckbox.checked) {
+            document.body.classList.add('light-mode');
+            document.getElementById('settings-panel').style.backgroundColor = "white";
+            document.getElementById('message-box').style.backgroundColor = "white";
+        } else {
+            document.body.classList.remove('light-mode');
+            document.getElementById('settings-panel').style.backgroundColor = "var(--container-bg)";
+            document.getElementById('message-box').style.backgroundColor = "var(--container-bg)";
+        }
+
+        // --- Restart and close ---
+        minesLeft = numMines;
+        restartGame(); // Restart to apply potentially new dimensions/mine count
+        toggleSettings(); // Close settings panel
+    }
+
+    function showMessage(message) {
+        document.getElementById('message-text').textContent = message;
+        document.getElementById('message-box').style.display = 'block';
+        document.getElementById('overlay').style.display = 'block';
+    }
+
+    function restartGame() {
+        stopTimer();
+        time = 0;
+        updateTimerDisplay();
+        gameStarted = false;
+        firstClick = true;
+        gameOver = false;
+        minesLeft = numMines
+        updateMinesLeftDisplay();
+         document.getElementById('generation-attempts').textContent = ''; // Clear attempts display on restart
+
+        // Reset ALL interaction states thoroughly
+        ignoreNextClick = false;
+        longPressFlaggedThisTouch = false; // Reset touch flag
+        longPressJustFinishedMouse = false; // Reset mouse flag
+        isLeftMouseDown = false;
+         if (pressedCellElement) { pressedCellElement.classList.remove('pressed'); pressedCellElement = null; }
+         initialMouseDownCell = null;
+        clearTimeout(touchLongPressTimerId); touchLongPressTimerId = null; // Clear touch timer
+        clearTimeout(mouseLongPressTimerId); mouseLongPressTimerId = null; // Clear mouse timer
+        clearTimeout(doubleTapFlagTimer); doubleTapFlagTimer = null;
+        clearTimeout(doubleTapChordTimer); doubleTapChordTimer = null;
+
+        // Remove the global mouseup listener before creating the grid again
+        document.removeEventListener('mouseup', handleDocumentMouseUp);
+
+        createGrid(); // Recreate grid and reattach listeners
+        document.getElementById('message-box').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
+    }
+
+    document.getElementById('long-press-delay').addEventListener('input', (event) => {
+        document.getElementById('long-press-delay-value').textContent = event.target.value;
+        // Update delay immediately for touch listeners if needed, or wait for Apply
+         // longPressDelay = parseInt(event.target.value); // Apply immediately? Or wait for Apply button? Let's wait.
+    });
+
+      function updateLeaderboard() {
+        // Only submit scores for standard difficulties
+        if (currentDifficulty === 'beginner' || currentDifficulty === 'intermediate' || currentDifficulty === 'expert') {
+            const currentName = document.getElementById('player-name').value.trim();
+             // Do not submit if name is empty or default "Player"
+             if (!currentName || currentName.toLowerCase() === "player") {
+                 console.log("Score not submitted: Enter a valid player name in Settings.");
+                 // Update local leaderboard anyway
+                 let bestTime = localStorage.getItem(`leaderboard-${currentDifficulty}`);
+                 if (bestTime === null || time < parseInt(bestTime)) {
+                     localStorage.setItem(`leaderboard-${currentDifficulty}`, time);
+                     bestTime = time;
+                 }
+                 const tdElement = document.getElementById(`leaderboard-${currentDifficulty}-local`);
+                 if (tdElement) {
+                     tdElement.textContent = bestTime === null ? '-' : bestTime + 's';
+                 }
+                 return;
+             }
+
+            // Submit to Online Leaderboard
+            const scoresCollection = db.collection('leaderboard');
+            scoresCollection.add({
+                playerName: currentName,
+                difficulty: currentDifficulty,
+                score: time,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp() // Use server time
+            }).then(() => {
+                console.log("Score submitted to online leaderboard!");
+                loadOnlineLeaderboard(); // Refresh leaderboard display
+            }).catch((error) => {
+                console.error("Error submitting score: ", error);
+                document.getElementById('leaderboard-error').textContent = 'Error submitting score.';
+                document.getElementById('leaderboard-error').style.display = 'block';
+            });
+
+            // Update Local Leaderboard
+            let bestTime = localStorage.getItem(`leaderboard-${currentDifficulty}`);
+            if (bestTime === null || time < parseInt(bestTime)) {
+                localStorage.setItem(`leaderboard-${currentDifficulty}`, time);
+                bestTime = time;
+            }
+            const tdElement = document.getElementById(`leaderboard-${currentDifficulty}-local`);
+             if (tdElement) { // Check if element exists
+                 tdElement.textContent = bestTime === null ? '-' : bestTime + 's';
+             }
+        } else {
+             console.log("Score not submitted for custom difficulty.");
+        }
+    }
+async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [], lastVisible = null) {
+    // Define the base query
+    let q = db.collection('leaderboard')
+              .where('difficulty', '==', difficulty)
+              .where('score', '>', 0) // Ensure score is positive (valid time)
+              .orderBy('score', 'asc'); // Order by score ascending
+
+    // If we have a document to start after (for pagination)
+    if (lastVisible) {
+        q = q.startAfter(lastVisible);
+    }
+
+    // Fetch a batch. Fetching slightly more than needed initially might be useful
+    // if further client-side filtering were applied, but here we can fetch exactly targetCount.
+    q = q.limit(targetCount); // Fetch up to targetCount in this batch
+
+    try {
+        const documentSnapshots = await q.get();
+
+        // Get the last document for the next potential fetch
+        const newLastVisible = documentSnapshots.docs[documentSnapshots.docs.length - 1];
+        let addedCount = 0;
+
+        documentSnapshots.forEach((doc) => {
+            // Add scores to our collected list if we haven't reached the target yet
+            const data = doc.data();
+            // Basic validation: ensure score is a number > 0
+            if (typeof data.score === 'number' && data.score > 0 && collectedScores.length < targetCount) {
+                 collectedScores.push(data);
+                 addedCount++;
+            }
+        });
+
+        // If we haven't reached the target count AND we received documents
+        // AND there might be more documents (indicated by newLastVisible), fetch the next batch.
+        // Note: Checking addedCount > 0 prevents infinite loops if Firestore returns empty sets.
+        if (collectedScores.length < targetCount && addedCount > 0 && newLastVisible) {
+             // console.log(`Fetching more for ${difficulty}. Found ${collectedScores.length}, need ${targetCount}`);
+             // Calculate remaining needed count for the next fetch
+             const remainingCount = targetCount - collectedScores.length;
+             return fetchScoresRecursive(difficulty, remainingCount, collectedScores, newLastVisible);
+        } else {
+             // We have enough scores OR there are no more documents to fetch
+             // console.log(`Finished fetching for ${difficulty}. Found ${collectedScores.length}`);
+             return collectedScores; // Return the final list
+        }
+    } catch (error) {
+        console.error(`Error fetching scores for ${difficulty}:`, error);
+        document.getElementById('leaderboard-error').textContent = `Error loading ${difficulty} scores.`;
+        document.getElementById('leaderboard-error').style.display = 'block';
+        throw error; // Re-throw the error to be caught by the main function
+    }
+}
+
+
+async function loadOnlineLeaderboard() {
+    document.getElementById('leaderboard-loading').style.display = 'block';
+    document.getElementById('leaderboard-error').style.display = 'none'; // Hide previous errors
+    document.getElementById('leaderboard-beginner').innerHTML = ''; // Clear old data
+    document.getElementById('leaderboard-intermediate').innerHTML = '';
+    document.getElementById('leaderboard-expert').innerHTML = '';
+
+    const difficulties = ['beginner', 'intermediate', 'expert'];
+    const targetScoreCount = 10; // We want the top 10 scores per difficulty
+
+    try {
+        const promises = difficulties.map(async (difficulty) => {
+            const leaderboardBody = document.getElementById(`leaderboard-${difficulty}`);
+            if (!leaderboardBody) {
+                console.error("Leaderboard body not found for:", difficulty);
+                return; // Skip this difficulty if element doesn't exist
+            }
+            leaderboardBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>'; // Show loading state per table
+
+            // Fetch the required scores recursively
+            // Pass an empty array to start collection for this difficulty
+            const scores = await fetchScoresRecursive(difficulty, targetScoreCount, []);
+
+             leaderboardBody.innerHTML = ''; // Clear loading message
+
+            // Populate the table with the fetched scores
+            if (scores.length > 0) {
+                let rank = 1;
+                scores.forEach((data) => {
+                    const row = leaderboardBody.insertRow();
+                    row.insertCell().textContent = rank++;
+                    // Sanitize player name slightly (optional)
+                    const nameCell = row.insertCell();
+                    nameCell.textContent = String(data.playerName || 'Anonymous').substring(0, 20); // Limit length
+                    row.insertCell().textContent = data.score + 's';
+                });
+            } else {
+                 leaderboardBody.innerHTML = '<tr><td colspan="3">No scores yet.</td></tr>';
+            }
+        });
+
+        // Wait for all fetching and rendering operations to complete
+        await Promise.all(promises);
+
+        // Hide global loading indicator only after all promises resolve successfully
+        document.getElementById('leaderboard-loading').style.display = 'none';
+
+    } catch (error) {
+        // This catch block might be redundant if fetchScoresRecursive handles display,
+        // but good for catching errors in Promise.all itself or leaderboardBody lookup.
+        console.error("Error loading one or more online leaderboards:", error);
+        document.getElementById('leaderboard-loading').style.display = 'none';
+        // Keep specific error messages shown by fetchScoresRecursive
+        if (!document.getElementById('leaderboard-error').style.display !== 'none') {
+             document.getElementById('leaderboard-error').textContent = 'Error loading online leaderboards. Please try again later.';
+             document.getElementById('leaderboard-error').style.display = 'block';
+        }
+    }
+}
+
+    function loadLeaderboard() {
+        const difficulties = ['beginner', 'intermediate', 'expert'];
+        difficulties.forEach(difficulty => {
+            const bestTime = localStorage.getItem(`leaderboard-${difficulty}`);
+            const tdElement = document.getElementById(`leaderboard-${difficulty}-local`); // Get TD element
+             if (tdElement) { // Check if element exists
+                 tdElement.textContent = bestTime === null ? '-' : bestTime + 's';
+             }
+        });
+    }
+
+    function loadSettings() {
+      playerName = localStorage.getItem('playerName') || 'Player';
+      document.getElementById('player-name').value = playerName;
+
+      const savedDarkMode = localStorage.getItem('darkMode');
+      const lightModeCheckbox = document.getElementById('light-mode');
+      if (savedDarkMode === 'enabled') {
+          document.body.classList.add('light-mode');
+          lightModeCheckbox.checked = true;
+          document.getElementById('settings-panel').style.backgroundColor = "white";
+          document.getElementById('message-box').style.backgroundColor = "white";
+      } else {
+           document.body.classList.remove('light-mode');
+           lightModeCheckbox.checked = false;
+            document.getElementById('settings-panel').style.backgroundColor = "var(--container-bg)";
+            document.getElementById('message-box').style.backgroundColor = "var(--container-bg)";
+      }
+
+      flagMethod = localStorage.getItem('flagMethod') || 'longPress';
+      document.getElementById('flag-method').value = flagMethod;
+      longPressDelay = parseInt(localStorage.getItem('longPressDelay')) || 500;
+      document.getElementById('long-press-delay').value = longPressDelay;
+      document.getElementById('long-press-delay-value').textContent = longPressDelay;
+
+      chordMethod = localStorage.getItem('chordMethod') || 'singleTap';
+      document.getElementById('chord-method').value = chordMethod;
+
+      noGuessMode = localStorage.getItem('noGuessMode') === 'true'; // Load No Guess Mode state
+      document.getElementById('no-guess-mode').checked = noGuessMode;
+      document.getElementById('generation-attempts').textContent = ''; // Clear attempts display on load
+
+
+      currentDifficulty = localStorage.getItem('currentDifficulty') || 'beginner';
+      width = parseInt(localStorage.getItem('width')) || 9;
+      height = parseInt(localStorage.getItem('height')) || 9;
+      numMines = parseInt(localStorage.getItem('numMines')) || 10;
+
+        // Ensure settings panel reflects loaded custom dimensions if applicable
+         if (currentDifficulty === 'custom') {
+             document.getElementById('width').value = width;
+             document.getElementById('height').value = height;
+             document.getElementById('mines').value = numMines;
+             document.querySelector('.custom-settings').classList.add('active');
+         } else {
+             document.querySelector('.custom-settings').classList.remove('active');
+              // Apply standard difficulty dimensions (will call restart)
+             setDifficulty(currentDifficulty);
+         }
+
+
+      // If NOT custom, setDifficulty will call restart.
+      // If it IS custom, we need to restart here to apply the loaded custom dimensions.
+       if (currentDifficulty === 'custom') {
+           minesLeft = numMines; // Ensure minesLeft is correct
+           restartGame(); // Trigger restart to apply dimensions
+       }
+
+
+      // Ensure flag listeners match loaded settings *after* potential restart
+      updateFlagMethod();
+
+    }
+
+    // --- No Guess Mode Solver Logic ---
+
+    function getNeighbors(x, y, W, H) {
+        const neighbors = [];
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const newX = x + dx;
+                const newY = y + dy;
+                if (newX >= 0 && newX < W && newY >= 0 && newY < H) {
+                    neighbors.push({ x: newX, y: newY });
+                }
+            }
+        }
+        return neighbors;
+    }
+
+    function isSolvableWithoutGuessing(startX, startY) {
+        // Create a temporary grid representing the solver's knowledge
+        // -2: Unknown, -1: Flagged, 0-8: Revealed Number
+        const solverGrid = [];
+        const W = width; // Use current game dimensions
+        const H = height;
+        let revealedCount = 0;
+        let minesFound = 0;
+        const totalNonMines = (W * H) - numMines;
+
+        for (let y = 0; y < H; y++) {
+            solverGrid[y] = [];
+            for (let x = 0; x < W; x++) {
+                solverGrid[y][x] = { state: -2 }; // Initially all unknown
+            }
+        }
+
+        // Queue for processing revealed squares (especially zeros)
+        const processQueue = [];
+
+        // Function to reveal a square within the solver
+        function solverReveal(x, y) {
+            if (x < 0 || x >= W || y < 0 || y >= H || solverGrid[y][x].state !== -2) {
+                return false; // Out of bounds or already known/flagged
+            }
+
+            if (grid[y][x].isMine) {
+                 // Should not happen if logic is correct, but indicates unsolvable
+                 console.error("Solver tried to reveal a mine at", x, y);
+                 return false; // Failed reveal
+            }
+
+            const adjacentMines = grid[y][x].adjacentMines;
+            solverGrid[y][x].state = adjacentMines;
+            revealedCount++;
+
+            if (adjacentMines === 0) {
+                // Add neighbors of zero to the processing queue
+                getNeighbors(x, y, W, H).forEach(n => {
+                    if (solverGrid[n.y][n.x].state === -2) { // Only queue unknown neighbors
+                         // Mark as queued to prevent duplicates? Simple check on state is often enough
+                        processQueue.push(n);
+                    }
+                });
+            }
+            return true; // Successful reveal
+        }
+
+         // Function to flag a square within the solver
+         function solverFlag(x, y) {
+             if (x < 0 || x >= W || y < 0 || y >= H || solverGrid[y][x].state !== -2) {
+                 return false; // Out of bounds or already known/revealed
+             }
+              if (!grid[y][x].isMine) {
+                  // Should not happen if logic is correct, indicates unsolvable
+                  console.error("Solver tried to flag a non-mine at", x, y);
+                  return false; // Failed flag
+              }
+
+             solverGrid[y][x].state = -1; // Mark as flagged
+             minesFound++;
+             return true;
+         }
+
+
+        // --- Start Solver ---
+
+        // 1. Reveal the initial safe area (usually 3x3 around startX, startY)
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (!solverReveal(startX + dx, startY + dy)) {
+                     // If initial reveal fails (e.g., hits mine - shouldn't happen with placeMines logic), grid is invalid
+                     // console.warn("Initial reveal failed - likely mine placement issue");
+                     // return false; // Technically placeMines should prevent this
+                }
+            }
+        }
+
+
+        // 2. Main deduction loop
+        let madeProgress = true;
+        while (madeProgress) {
+            madeProgress = false;
+
+            // Process the queue (mostly for zero propagation)
+            while (processQueue.length > 0) {
+                const { x, y } = processQueue.shift();
+                if (solverGrid[y][x].state === -2) { // Ensure it wasn't revealed by another path
+                    if (solverReveal(x, y)) {
+                        madeProgress = true; // Revealing counts as progress
+                    }
+                }
+            }
+
+
+            // Apply deduction rules across the entire grid
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const cellState = solverGrid[y][x].state;
+
+                    if (cellState >= 1 && cellState <= 8) { // Only apply rules to revealed numbers > 0
+                        const neighbors = getNeighbors(x, y, W, H);
+                        let unknownNeighbors = [];
+                        let flaggedNeighbors = 0;
+
+                        neighbors.forEach(n => {
+                            if (solverGrid[n.y][n.x].state === -2) {
+                                unknownNeighbors.push(n);
+                            } else if (solverGrid[n.y][n.x].state === -1) {
+                                flaggedNeighbors++;
+                            }
+                        });
+
+                        // Rule 1: All mines flagged? Reveal remaining unknowns.
+                        if (flaggedNeighbors === cellState && unknownNeighbors.length > 0) {
+                            unknownNeighbors.forEach(n => {
+                                if (solverReveal(n.x, n.y)) {
+                                    madeProgress = true;
+                                }
+                            });
+                        }
+
+                         // Rule 2: All unknowns must be mines? Flag them.
+                         if (unknownNeighbors.length > 0 && flaggedNeighbors + unknownNeighbors.length === cellState) {
+                            unknownNeighbors.forEach(n => {
+                                if (solverFlag(n.x, n.y)) {
+                                    madeProgress = true;
+                                } else {
+                                     // If flagging fails (tried to flag non-mine), grid is unsolvable
+                                     return false; // Exit immediately
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+             // After applying rules, refill queue if any zeros were revealed
+             if (madeProgress) {
+                 // Rescan for newly revealed zeros or just rely on next loop iteration?
+                 // Relying on the next loop iteration is simpler.
+             }
+
+
+        } // End while(madeProgress)
+
+        // 3. Check final state
+        // Solvable if all non-mine squares have been revealed
+        return revealedCount === totalNonMines;
+    }
+
+
+    // --- Initialize ---
+    loadSettings(); // Loads settings and potentially calls restartGame
+    loadLeaderboard();
+    loadOnlineLeaderboard();
+    // createGrid() is called by loadSettings -> setDifficulty -> restartGame OR directly by loadSettings if custom
+
+    </script>
+</body>
+</html>
