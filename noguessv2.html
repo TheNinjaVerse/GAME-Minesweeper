@@ -19,12 +19,12 @@
             --cell-border-color: #777;
             --revealed-cell-bg: #555;
             --revealed-cell-border: #888;
-            --flagged-cell-bg: #4682B4;
-            --flagged-cell-color: #FFD700;
-            --mine-bg-color: #B22222;
-            --mine-revealed-bg: #800000;
+            --flagged-cell-bg: #4682B4; /* Steel Blue */
+            --flagged-cell-color: #FFD700; /* Gold */
+            --mine-bg-color: #B22222; /* Firebrick */
+            --mine-revealed-bg: #800000; /* Maroon */
             --mine-revealed-color: white;
-            --incorrect-flag-bg: #A0522D;
+            --incorrect-flag-bg: #A0522D; /* Sienna */
             --incorrect-flag-color: white;
             --text-color: white;
             --button-bg: #3e8e41;
@@ -33,6 +33,16 @@
             --control-border-color: #aaa;
             --control-bg-color: #444;
             --cell-pressed-bg: #777; /* Added style for pressed cell */
+
+             /* Dark mode number colors (lighter) */
+            --num-1-color-dark: #ADD8E6; /* Light Blue */
+            --num-2-color-dark: #90EE90; /* Light Green */
+            --num-3-color-dark: #F08080; /* Light Coral */
+            --num-4-color-dark: #B0C4DE; /* Light Steel Blue */
+            --num-5-color-dark: #FFA07A; /* Light Salmon */
+            --num-6-color-dark: #20B2AA; /* Light Sea Green */
+            --num-7-color-dark: #E6E6FA; /* Lavender (lighter than grey) */
+            --num-8-color-dark: #D3D3D3; /* Light Gray */
         }
 
         /* Light Mode Styles */
@@ -45,12 +55,12 @@
             --cell-border-color: #f0f0f0;
             --revealed-cell-bg: #f8f8f8;
             --revealed-cell-border: #909090;
-            --flagged-cell-bg: #87CEEB;
-            --flagged-cell-color: #B22222;
-            --mine-bg-color: #F08080;
-            --mine-revealed-bg: #DC143C;
+            --flagged-cell-bg: #87CEEB; /* Sky Blue */
+            --flagged-cell-color: #B22222; /* Firebrick */
+            --mine-bg-color: #F08080; /* Light Coral */
+            --mine-revealed-bg: #DC143C; /* Crimson */
             --mine-revealed-color: white;
-            --incorrect-flag-bg: #FFD700;
+            --incorrect-flag-bg: #FFD700; /* Gold */
             --incorrect-flag-color: black;
             --text-color: black;
             --button-bg: #4CAF50;
@@ -136,8 +146,9 @@
             background-color: var(--flagged-cell-bg);
             color: var(--flagged-cell-color);
         }
-        .cell.mine {
-            background-color: var(--mine-bg-color);
+        .cell.mine { /* Style for the mine hit that ends the game */
+             background-color: red !important; /* Make it stand out */
+             color: white;
         }
         .cell.mine-revealed {
             background-color: var(--mine-revealed-bg);
@@ -147,16 +158,18 @@
             background-color: var(--incorrect-flag-bg);
             color: var(--incorrect-flag-color);
         }
-        /* Number colors */
-        .cell[data-adjacent="1"] { color: blue; }
-        .cell[data-adjacent="2"] { color: green; }
-        .cell[data-adjacent="3"] { color: red; }
-        .cell[data-adjacent="4"] { color: navy; }
-        .cell[data-adjacent="5"] { color: maroon; }
-        .cell[data-adjacent="6"] { color: teal; }
-        .cell[data-adjacent="7"] { color: black; }
-        .cell[data-adjacent="8"] { color: gray; }
-        /* Light mode number colors */
+
+        /* Dark Mode Number colors */
+        .cell[data-adjacent="1"] { color: var(--num-1-color-dark); }
+        .cell[data-adjacent="2"] { color: var(--num-2-color-dark); }
+        .cell[data-adjacent="3"] { color: var(--num-3-color-dark); }
+        .cell[data-adjacent="4"] { color: var(--num-4-color-dark); }
+        .cell[data-adjacent="5"] { color: var(--num-5-color-dark); }
+        .cell[data-adjacent="6"] { color: var(--num-6-color-dark); }
+        .cell[data-adjacent="7"] { color: var(--num-7-color-dark); }
+        .cell[data-adjacent="8"] { color: var(--num-8-color-dark); }
+
+        /* Light mode number colors (standard/original) */
         .light-mode .cell[data-adjacent="1"] { color: blue; }
         .light-mode .cell[data-adjacent="2"] { color: green; }
         .light-mode .cell[data-adjacent="3"] { color: red; }
@@ -165,6 +178,7 @@
         .light-mode .cell[data-adjacent="6"] { color: teal; }
         .light-mode .cell[data-adjacent="7"] { color: black; }
         .light-mode .cell[data-adjacent="8"] { color: gray; }
+
 
         #controls {
             display: flex;
@@ -544,11 +558,11 @@
 
         <div class="custom-settings setting-group">
             <label for="width">Width:</label>
-            <input type="number" id="width" min="5" max="30" value="9">
+            <input type="number" id="width" min="5" max="50" value="9"> <!-- Increased max size -->
             <label for="height">Height:</label>
-            <input type="number" id="height" min="5" max="30" value="9">
+            <input type="number" id="height" min="5" max="50" value="9"> <!-- Increased max size -->
             <label for="mines">Mines:</label>
-            <input type="number" id="mines" min="1" max="99" value="10">
+            <input type="number" id="mines" min="1" max="2491" value="10"> <!-- Max mines adjusted based on max w/h -->
         </div>
         <div class="setting-group">
              <label for="light-mode" style="display: inline-block; margin-right: 10px;">Light Mode:</label>
@@ -671,7 +685,7 @@
     let firstClick = true;
     let touchLongPressTimerId = null;
     let mouseLongPressTimerId = null;
-    let ignoreNextClick = false; // Specifically for preventing click after touch long press
+    let ignoreNextClick = false; // Flag to ignore click after long press
     let longPressFlaggedThisTouch = false; // Flag set when touch long press timer completes
     let longPressJustFinishedMouse = false; // Flag for mouse long press completion
     let isLeftMouseDown = false;
@@ -701,14 +715,14 @@
           cell.classList.add('cell');
           cell.dataset.x = x;
           cell.dataset.y = y;
-          cell.addEventListener('click', handleClick); // Keep click for touch taps
-          cell.addEventListener('mousedown', handleCellMouseDown);
-          cell.addEventListener('contextmenu', handleRightClick);
-          cell.addEventListener('mouseover', handleCellMouseOver);
-          cell.addEventListener('mouseout', handleCellMouseOut);
+          cell.addEventListener('click', handleClick); // Handles taps
+          cell.addEventListener('mousedown', handleCellMouseDown); // Handles mouse down (incl. long press start)
+          cell.addEventListener('contextmenu', handleRightClick); // Handles right click flag
+          cell.addEventListener('mouseover', handleCellMouseOver); // Handles mouse drag over cells
+          cell.addEventListener('mouseout', handleCellMouseOut); // Handles mouse leaving cell while down
 
           // Apply touch/long press listeners based on settings
-          updateFlagMethod(cell, x, y);
+          updateFlagMethod(cell, x, y); // Attaches specific touch listeners
 
           gridContainer.appendChild(cell);
           grid[y][x] = {
@@ -722,12 +736,17 @@
       }
       updateMinesLeftDisplay();
       updateTimerDisplay();
+      // Prevent default context menu on the grid
       gridContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+      // Global mouseup listener for releasing clicks outside the grid
       document.addEventListener('mouseup', handleDocumentMouseUp);
     }
 
     function handleRightClick(event) {
-      event.preventDefault();
+      event.preventDefault(); // Prevent browser context menu
+       if (flagMethod === 'rightClick') {
+           handleFlag(event); // Handle flag if method is right click
+       }
     }
 
     function handleCellMouseDown(event) {
@@ -736,24 +755,32 @@
         const targetCell = event.target.closest('.cell');
         if (!targetCell) return;
 
-        initialMouseDownCell = targetCell;
+        initialMouseDownCell = targetCell; // Store the cell where mouse down started
 
+        // --- Right Click (Button 2) ---
         if (event.button === 2) {
-            event.preventDefault();
-            if (flagMethod === 'rightClick' || flagMethod === 'longPress') {
-                handleFlag(event);
+            event.preventDefault(); // Prevent context menu
+            if (flagMethod === 'rightClick') {
+                // Flag is handled by handleRightClick, which calls handleFlag
+            } else if (flagMethod === 'longPress') {
+                 // Allow right-click flagging even if long press is the primary mobile method
+                 handleFlag(event);
             }
-            return;
+            return; // Don't process as left click
         }
 
+        // --- Left Click (Button 0) ---
         if (event.button === 0) {
+             // --- Long Press Handling (for mouse) ---
              if (flagMethod === 'longPress') {
-                 clearTimeout(mouseLongPressTimerId);
+                 clearTimeout(mouseLongPressTimerId); // Clear previous timer
                  longPressJustFinishedMouse = false; // Reset mouse long press flag
                  mouseLongPressTimerId = setTimeout(() => {
-                     handleFlag(event);
+                     // Timer completed: Long press detected for mouse
+                     handleFlag(event); // Perform flag action
                      longPressJustFinishedMouse = true; // Set flag specific to mouse
-                     mouseLongPressTimerId = null;
+                     mouseLongPressTimerId = null; // Timer is done
+                     // Release the 'pressed' state since the action is complete
                      if (pressedCellElement) {
                         pressedCellElement.classList.remove('pressed');
                      }
@@ -761,98 +788,123 @@
                  }, longPressDelay);
              }
 
+             // --- Standard Left Mouse Down ---
              isLeftMouseDown = true;
              pressedCellElement = targetCell;
              const cellData = grid[parseInt(targetCell.dataset.y)][parseInt(targetCell.dataset.x)];
-             if (!cellData.isRevealed) {
+             // Only show 'pressed' style on unrevealed, unflagged cells
+             if (!cellData.isRevealed && !cellData.isFlagged) {
                 pressedCellElement.classList.add('pressed');
              }
         }
     }
 
     function handleCellMouseOver(event) {
+        // Only apply hover effects if left mouse button is currently held down
         if (!isLeftMouseDown || gameOver) return;
 
         const targetCell = event.target.closest('.cell');
-        if (!targetCell) return;
+        if (!targetCell) return; // Ignore if not hovering over a cell
 
         const cellData = grid[parseInt(targetCell.dataset.y)][parseInt(targetCell.dataset.x)];
+
+        // If hovering over a revealed cell, remove pressed state from any cell
         if (cellData.isRevealed) {
              if (pressedCellElement && pressedCellElement !== targetCell) {
                  pressedCellElement.classList.remove('pressed');
              }
-             pressedCellElement = null;
+             pressedCellElement = null; // No cell should appear pressed
              return;
         }
 
+        // If hovering over a different unrevealed cell than the one currently pressed
         if (targetCell !== pressedCellElement) {
-            if (pressedCellElement) {
+            if (pressedCellElement) { // Remove pressed state from the old cell
                 pressedCellElement.classList.remove('pressed');
             }
-            targetCell.classList.add('pressed');
-            pressedCellElement = targetCell;
+            // Add pressed state to the new cell
+            if (!cellData.isFlagged) { // Don't press flagged cells
+                 targetCell.classList.add('pressed');
+                 pressedCellElement = targetCell;
+            } else {
+                 pressedCellElement = null; // Don't visually press flagged cells
+            }
         }
     }
 
     function handleCellMouseOut(event) {
+        // Only apply if left mouse button is currently held down
         if (!isLeftMouseDown || gameOver) return;
 
         const targetCell = event.target.closest('.cell');
+        // If moving out of the cell that was visually pressed
         if (targetCell === pressedCellElement) {
              pressedCellElement.classList.remove('pressed');
+             // Keep track that a cell *was* pressed (initialMouseDownCell),
+             // but remove the visual style when mouse leaves it.
+             // Set pressedCellElement to null so mouseover another cell can press it.
              pressedCellElement = null;
         }
     }
 
 
     function handleDocumentMouseUp(event) {
-        if (event.button !== 0 || !isLeftMouseDown) {
-            if (pressedCellElement) {
+         // --- Left Click Release (Button 0) ---
+        if (event.button === 0 && isLeftMouseDown) {
+             isLeftMouseDown = false; // Mouse button is up
+             const mouseUpTargetElement = document.elementFromPoint(event.clientX, event.clientY);
+             const mouseUpCellElement = mouseUpTargetElement ? mouseUpTargetElement.closest('.cell') : null;
+
+             // Clear any running MOUSE long press timer (it didn't complete if we got here)
+             clearTimeout(mouseLongPressTimerId);
+             mouseLongPressTimerId = null;
+
+             // Remove visual pressed state from the last pressed cell, if any
+             if (pressedCellElement) {
                  pressedCellElement.classList.remove('pressed');
-                 pressedCellElement = null;
-            }
-            isLeftMouseDown = false;
-            clearTimeout(mouseLongPressTimerId); // Clear MOUSE long press timer
-            mouseLongPressTimerId = null;
-            initialMouseDownCell = null;
-            return;
-        }
-
-        isLeftMouseDown = false;
-        const mouseUpTargetElement = document.elementFromPoint(event.clientX, event.clientY);
-        const mouseUpCellElement = mouseUpTargetElement ? mouseUpTargetElement.closest('.cell') : null;
-
-        clearTimeout(mouseLongPressTimerId); // Clear any running MOUSE long press timer
-        mouseLongPressTimerId = null;
-
-        if (pressedCellElement) {
-            pressedCellElement.classList.remove('pressed');
-        }
-        pressedCellElement = null;
-        initialMouseDownCell = null;
-
-
-        if (longPressJustFinishedMouse) { // Check MOUSE long press flag
-            longPressJustFinishedMouse = false; // Reset mouse flag
-            return; // Do not reveal/chord if mouse long press just flagged
-        }
-
-        if (gameOver) return;
-
-        if (mouseUpCellElement) {
-            const x = parseInt(mouseUpCellElement.dataset.x);
-            const y = parseInt(mouseUpCellElement.dataset.y);
-
-             if (firstClick) {
-                 handleFirstClick(x, y); // Modified first click handling
-             } else {
-                const cellData = grid[y][x];
-                if (cellData.isRevealed) {
-                     chord(x, y);
-                } else if (!cellData.isFlagged) { // Don't reveal flagged cells on normal click
-                    revealCell(x, y);
-                }
              }
+             pressedCellElement = null; // Reset the currently visually pressed cell
+
+             // --- Check if a MOUSE long press just finished ---
+             if (longPressJustFinishedMouse) {
+                 longPressJustFinishedMouse = false; // Reset mouse flag
+                 initialMouseDownCell = null; // Reset initial cell
+                 return; // Do not reveal/chord if mouse long press just flagged
+             }
+
+             if (gameOver) {
+                 initialMouseDownCell = null;
+                 return;
+             }
+
+
+             // --- Check if mouse was released over the *same cell* it was pressed down on ---
+             if (mouseUpCellElement && mouseUpCellElement === initialMouseDownCell) {
+                 const x = parseInt(mouseUpCellElement.dataset.x);
+                 const y = parseInt(mouseUpCellElement.dataset.y);
+                 const cellData = grid[y][x];
+
+                 if (firstClick) {
+                     handleFirstClick(x, y);
+                 } else if (cellData.isRevealed) {
+                     chord(x, y); // Perform chord action on revealed cell
+                 } else if (!cellData.isFlagged) {
+                     revealCell(x, y); // Reveal unrevealed, unflagged cell
+                 }
+             }
+             initialMouseDownCell = null; // Reset initial cell tracking
+
+        } else {
+             // --- Handle non-left click mouseup or mouseup when not dragging ---
+             if (pressedCellElement) { // Clean up visual state if needed
+                  pressedCellElement.classList.remove('pressed');
+                  pressedCellElement = null;
+             }
+             isLeftMouseDown = false; // Ensure state is reset
+             clearTimeout(mouseLongPressTimerId); // Clear timer
+             mouseLongPressTimerId = null;
+             initialMouseDownCell = null; // Reset initial cell tracking
+             longPressJustFinishedMouse = false; // Reset flag
         }
     }
 
@@ -892,13 +944,14 @@
                             console.log(`No Guess Mode: Attempt ${generationAttempts}...`);
                             attemptsSpan.textContent = `Generating... (${generationAttempts})`;
                         }
-                        if (generationAttempts > 10000) { // Safety break
-                             console.error("No Guess Mode: Generation timed out after 10000 attempts.");
-                             alert("Failed to generate a solvable grid in No Guess Mode. Please try reducing density or grid size.");
+                        if (generationAttempts > 5000) { // Reduced safety break
+                             console.error(`No Guess Mode: Generation timed out after ${generationAttempts} attempts.`);
+                             alert(`Failed to generate a solvable grid in No Guess Mode after ${generationAttempts} tries. Try reducing density or grid size, or disable No Guess Mode.`);
                              attemptsSpan.textContent = '(Generation Failed)';
-                             // Optionally restart or revert to normal mode
-                             restartGame(); // Restarting might be simplest
-                             return;
+                             // Revert to normal mode for this game instance? Or just keep trying?
+                             // Let's restart to avoid getting stuck
+                             restartGame();
+                             return; // Stop the generation loop
                         }
                      }
                  }
@@ -914,10 +967,11 @@
      }
 
     function updateFlagMethod(cell, x, y) {
+        // If cell is not provided, update all cells
         if(!cell){
             for(let r = 0; r < height; r++){
                 for(let c = 0; c < width; c++){
-                    if (grid[r] && grid[r][c]) {
+                    if (grid[r] && grid[r][c] && grid[r][c].element) {
                        updateFlagMethod(grid[r][c].element, c, r);
                     }
                 }
@@ -925,17 +979,20 @@
             return;
         }
 
+        // Remove potentially existing listeners first to avoid duplicates
         cell.removeEventListener('touchstart', handleDoubleTapFlag);
-        removeLongPressListener(cell); // Remove previous listeners (touch and mouse leave)
+        removeLongPressListener(cell); // Remove previous specific long press listeners
 
+        // Add the listener based on the current setting
         if (flagMethod === 'longPress') {
-            addLongPressListener(cell, handleFlag); // Adds TOUCH listeners
+            addLongPressListener(cell, handleFlag); // Adds TOUCH long press listener
         } else if (flagMethod === 'doubleTap') {
             cell.addEventListener('touchstart', handleDoubleTapFlag);
         } else if (flagMethod === 'rightClick') {
-            // Handled in handleCellMouseDown
+            // Right click is handled by handleCellMouseDown and handleRightClick
         }
     }
+
     function handleDoubleTapFlag(event){
         if(gameOver || flagMethod !== 'doubleTap') return;
 
@@ -943,22 +1000,27 @@
         if (!targetCell) return;
 
         if(doubleTapFlagTimer === null){
+            // First tap: Set a timer. If it expires, it's a single tap (reveal).
             doubleTapFlagTimer = setTimeout(() => {
                 doubleTapFlagTimer = null;
-                // Don't call handleClick directly, let the natural click/mouseup handle reveal
-            }, 300)
+                // Don't call handleClick directly, let the natural click/mouseup handle reveal for single tap
+            }, 300); // 300ms window for double tap
         }
         else{
-            clearTimeout(doubleTapFlagTimer);
+            // Second tap within the window: This is a double tap (flag).
+            clearTimeout(doubleTapFlagTimer); // Cancel the single tap timer
             doubleTapFlagTimer = null;
-            handleFlag(event);
-            // Prevent the click/mouseup from revealing after double-tap flag
+            handleFlag(event); // Perform flag action
+
+            // --- Crucial: Prevent the subsequent 'click' event from revealing ---
              ignoreNextClick = true;
+
+             // Also prevent mouseup from revealing if somehow triggered
              if(pressedCellElement){
                  pressedCellElement.classList.remove('pressed');
                  pressedCellElement = null;
              }
-             isLeftMouseDown = false; // Ensure mouse up doesn't trigger reveal
+             isLeftMouseDown = false; // Ensure mouse up state is cleared
         }
     }
     function handleDoubleTapChord(event){
@@ -970,13 +1032,18 @@
         const y = parseInt(targetCell.dataset.y);
 
          if (doubleTapChordTimer === null) {
+             // First tap on revealed number: set timer
             doubleTapChordTimer = setTimeout(() => {
                 doubleTapChordTimer = null;
+                // Timeout means single tap, do nothing here (no default action needed)
             }, 300);
         } else {
+            // Second tap: chord action
             clearTimeout(doubleTapChordTimer);
             doubleTapChordTimer = null;
             chord(x, y);
+             // Prevent click/mouseup if needed, though chord usually doesn't trigger reveal
+             ignoreNextClick = true;
         }
     }
 
@@ -984,39 +1051,52 @@
     function placeMines(safeX, safeY) {
         let minesPlaced = 0;
         let availableSquares = [];
+        // Create list of squares *not* in the 3x3 safe zone
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                if (!isNearSafeZone(x, y, safeX, safeY)) {
+                 let isSafe = false;
+                 for(let dy = -1; dy <= 1; dy++){
+                     for(let dx = -1; dx <= 1; dx++){
+                         if(x === safeX + dx && y === safeY + dy){
+                             isSafe = true;
+                             break;
+                         }
+                     }
+                     if(isSafe) break;
+                 }
+                 if (!isSafe) {
                      availableSquares.push({x, y});
-                }
+                 }
             }
         }
 
-        // Shuffle the available squares
+        // Shuffle the available squares using Fisher-Yates
         for (let i = availableSquares.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [availableSquares[i], availableSquares[j]] = [availableSquares[j], availableSquares[i]];
         }
 
         // Place mines in the first 'numMines' shuffled squares
-        for (let i = 0; i < numMines && i < availableSquares.length; i++) {
+        const minesToPlace = Math.min(numMines, availableSquares.length); // Ensure we don't try to place more mines than available spots
+        for (let i = 0; i < minesToPlace; i++) {
             const { x, y } = availableSquares[i];
-            grid[y][x].isMine = true;
-            minesPlaced++;
+             if(grid[y] && grid[y][x]){ // Basic check
+                 grid[y][x].isMine = true;
+                 minesPlaced++;
+             }
         }
 
-        // Ensure the exact number of mines are placed (handles cases where safe zone is large)
          if (minesPlaced < numMines) {
-             // This should ideally not happen if numMines is validated correctly against grid size - safe zone size
-             console.warn(`Could only place ${minesPlaced} out of ${numMines} mines due to safe zone.`);
-             // In a real scenario, might need to retry or adjust numMines
+             console.warn(`Could only place ${minesPlaced} out of ${numMines} mines due to safe zone size or grid constraints.`);
+         } else if (minesPlaced > numMines) {
+              console.error(`Placed too many mines (${minesPlaced})! Check logic.`);
          }
 
         calculateAdjacentMines();
     }
 
 
-    function isNearSafeZone(x, y, safeX, safeY){
+    function isNearSafeZone(x, y, safeX, safeY){ // Unused now, logic moved into placeMines
         for(let dx = -1; dx <= 1; dx++){
             for(let dy = -1; dy <= 1; dy++){
                 if(x === safeX + dx && y === safeY + dy){
@@ -1030,114 +1110,154 @@
     function calculateAdjacentMines() {
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                if (!grid[y][x].isMine) {
+                if (grid[y]?.[x] && !grid[y][x].isMine) { // Check cell exists
                     let count = 0;
                     for (let dy = -1; dy <= 1; dy++) {
                         for (let dx = -1; dx <= 1; dx++) {
                             if (dx === 0 && dy === 0) continue;
                             const newX = x + dx;
                             const newY = y + dy;
-                            if (newX >= 0 && newX < width && newY >= 0 && newY < height && grid[newY][newX].isMine) {
+                            // Check bounds and if the neighbor is a mine
+                            if (newX >= 0 && newX < width && newY >= 0 && newY < height && grid[newY]?.[newX]?.isMine) {
                                 count++;
                             }
                         }
                     }
                     grid[y][x].adjacentMines = count;
+                    // Update element data attribute if it exists (for styling)
+                    if(grid[y][x].element) {
+                         grid[y][x].element.dataset.adjacent = count;
+                    }
+                } else if (grid[y]?.[x]) {
+                     grid[y][x].adjacentMines = -1; // Indicate a mine
+                     if(grid[y][x].element) {
+                          delete grid[y][x].element.dataset.adjacent; // Remove data attribute for mines
+                     }
                 }
             }
         }
     }
 
     function revealCell(x, y) {
-        if (isNaN(x) || isNaN(y) || x < 0 || x >= width || y < 0 || y >= height) return; // Bounds check
+        if (isNaN(x) || isNaN(y) || x < 0 || x >= width || y < 0 || y >= height || gameOver) return; // Bounds check and game over check
 
         const cell = grid[y][x];
-
-        if (cell.isRevealed || cell.isFlagged || gameOver) return;
+        if (!cell || cell.isRevealed || cell.isFlagged) return; // Check cell exists, already revealed or flagged
 
         cell.isRevealed = true;
         cell.element.classList.remove('pressed'); // Ensure pressed style is removed
         cell.element.classList.add('revealed');
+        cell.element.classList.remove('flagged'); // Remove flag style if it was somehow revealed while flagged
 
         if (cell.isMine) {
+            cell.element.classList.add('mine'); // Add the specific class for the hit mine
             revealAllMines(x, y); // Pass the clicked mine coordinates
             showMessage("Game Over!");
             stopTimer();
             gameOver = true;
-
         } else {
+             cell.element.dataset.adjacent = cell.adjacentMines; // Set data attribute for styling
             if (cell.adjacentMines > 0) {
                 cell.element.textContent = cell.adjacentMines;
-                cell.element.dataset.adjacent = cell.adjacentMines; // For styling numbers
             } else {
                 // Propagate reveal for 0-mine neighbors
                  cell.element.textContent = ''; // Ensure empty for 0
-                 cell.element.dataset.adjacent = 0; // For styling
-                for (let dy = -1; dy <= 1; dy++) {
-                    for (let dx = -1; dx <= 1; dx++) {
-                        // No need to check (dx === 0 && dy === 0) because revealCell handles isRevealed check
-                        const newX = x + dx;
-                        const newY = y + dy;
-                        // Check bounds before recursive call
-                         if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
-                             revealCell(newX, newY);
+                // Use a queue for non-recursive propagation to avoid stack overflow on large empty areas
+                const revealQueue = [];
+                revealQueue.push({nx: x, ny: y}); // Start with the current cell (already revealed, just for neighbors)
+
+                while(revealQueue.length > 0) {
+                    const current = revealQueue.shift();
+                    // Reveal neighbors of the current ZERO cell
+                     for (let dy = -1; dy <= 1; dy++) {
+                         for (let dx = -1; dx <= 1; dx++) {
+                             if (dx === 0 && dy === 0) continue;
+                             const nextX = current.nx + dx;
+                             const nextY = current.ny + dy;
+
+                             if (nextX >= 0 && nextX < width && nextY >= 0 && nextY < height) {
+                                 const neighborCell = grid[nextY][nextX];
+                                 // Only reveal if it's not revealed and not flagged
+                                 if (neighborCell && !neighborCell.isRevealed && !neighborCell.isFlagged) {
+                                     neighborCell.isRevealed = true;
+                                     neighborCell.element.classList.add('revealed');
+                                     neighborCell.element.classList.remove('pressed');
+                                     neighborCell.element.dataset.adjacent = neighborCell.adjacentMines; // Set data attr
+
+                                     if (neighborCell.adjacentMines > 0) {
+                                         neighborCell.element.textContent = neighborCell.adjacentMines;
+                                     } else {
+                                         neighborCell.element.textContent = '';
+                                         // Add this new zero cell to the queue to process its neighbors
+                                         revealQueue.push({nx: nextX, ny: nextY});
+                                     }
+                                 }
+                             }
                          }
-                    }
+                     }
                 }
             }
         }
-       checkWin(); // Check win condition after every reveal
+       if (!gameOver) checkWin(); // Check win condition only if game not over
     }
 
    // 'click' event handler PRIMARILY for TOUCH interactions now
    function handleClick(event) {
-        // --- BUG FIX: Check ignoreNextClick FIRST ---
+        // --- Check ignoreNextClick FIRST ---
+        // This is crucial to prevent reveal after long-press flag/unflag or double-tap flag
         if (ignoreNextClick) {
-            ignoreNextClick = false; // Reset the flag
-            return; // Prevent action after touch long press
+            ignoreNextClick = false; // Reset the flag for the next interaction
+            return; // Stop processing this click/tap event
         }
-        // --- END BUG FIX ---
+        // --- END ignoreNextClick Check ---
 
         if (gameOver) return;
 
-        // Ignore left mouse clicks here (handled by mousedown/mouseup)
+        // Ignore left mouse clicks (handled by mousedown/mouseup logic)
         if (event.pointerType === 'mouse' && event.button === 0) {
              return;
         }
 
+        // --- Process Tap ---
         const targetCell = event.target.closest('.cell');
-        if (!targetCell) return;
+        if (!targetCell) return; // Exit if the click wasn't on a cell
         const x = parseInt(targetCell.dataset.x);
         const y = parseInt(targetCell.dataset.y);
 
         if (firstClick) {
              handleFirstClick(x, y); // Use the dedicated first click handler
-             return; // First click logic handles reveal/start
+             return; // First click logic handles reveal/start/generation
         }
 
         const cell = grid[y][x];
+        if (!cell) return; // Cell data doesn't exist?
 
         // Subsequent touch actions (or non-first clicks if any slip through)
         if (cell.isRevealed) { // Handle chording
             if (chordMethod === 'doubleTap') {
-                 handleDoubleTapChord(event);
+                 handleDoubleTapChord(event); // Needs its own timer/logic
             } else {
-                chord(x, y);
+                chord(x, y); // Single tap chord
             }
-        } else { // Handle revealing
+        } else if (!cell.isFlagged) { // Handle revealing (only if not flagged)
              if (flagMethod === 'doubleTap') {
-                  // In double-tap flag mode, a single tap should reveal
-                  if (doubleTapFlagTimer !== null) { // Check if the first tap of a potential double tap
-                     // Let the timeout in handleDoubleTapFlag handle the reveal
-                  } else {
-                      // If it's definitely not part of a double tap, reveal immediately
-                      if (!cell.isFlagged) revealCell(x, y);
+                  // In double-tap flag mode, a single tap should reveal.
+                  // We check the timer state to ensure it's not the *first* tap
+                  // of an intended double-tap-flag action.
+                  if (doubleTapFlagTimer === null) {
+                      // Timer is null, meaning it's either expired (was single tap)
+                      // or hasn't started (this is the first tap). Reveal now.
+                      revealCell(x, y);
                   }
+                  // If timer is NOT null, it means this is the first tap of a potential
+                  // double tap. Do nothing here; let the timeout in handleDoubleTapFlag
+                  // handle the reveal if the second tap doesn't occur.
              } else {
-                 // For long press or right click, a simple tap reveals
-                 if (!cell.isFlagged) revealCell(x, y);
+                 // For long press or right click flag modes, a simple tap reveals.
+                 revealCell(x, y);
              }
         }
+        // If the cell IS flagged, a tap does nothing.
     }
 
     function handleFlag(event) {
@@ -1150,43 +1270,56 @@
       const y = parseInt(targetCell.dataset.y);
       const cell = grid[y][x];
 
-      if (!cell.isRevealed) {
+      if (!cell.isRevealed) { // Can only flag/unflag unrevealed cells
         if (cell.isFlagged) {
+          // Unflag
           cell.isFlagged = false;
           cell.element.classList.remove('flagged');
           cell.element.textContent = '';
           minesLeft++;
         } else if (minesLeft > 0) { // Only allow flagging if mines are left
+          // Flag
           cell.isFlagged = true;
           cell.element.classList.add('flagged');
           cell.element.textContent = '🚩';
           minesLeft--;
+        } else {
+             // No mines left to flag - maybe provide feedback? (optional)
+              // console.log("Cannot flag, no mines left according to counter.");
         }
         updateMinesLeftDisplay();
+        // Check win only needed if all mines might be flagged now
+        if (minesLeft === 0) {
+             checkWin();
+        }
       }
-      checkWin(); // Check win condition after flag change
     }
 
      function chord(x, y){
-        if (isNaN(x) || isNaN(y) || x < 0 || x >= width || y < 0 || y >= height) return; // Bounds check
-        const cell = grid[y][x];
-        // Only chord if the cell is revealed and has adjacent mines
-        if(!cell.isRevealed || cell.adjacentMines === 0 || gameOver) return;
+        if (isNaN(x) || isNaN(y) || x < 0 || x >= width || y < 0 || y >= height || gameOver) return; // Bounds check and game over check
+
+        const cell = grid[y]?.[x];
+        // Only chord if the cell exists, is revealed, and has adjacent mines
+        if(!cell || !cell.isRevealed || cell.adjacentMines === 0) return;
 
         let flaggedNeighbors = 0;
-        let unknownNeighbors = []; // Keep track of neighbours to reveal
+        let unknownAndUnflaggedNeighbors = []; // Keep track of neighbours to reveal
 
          for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 if (dx === 0 && dy === 0) continue;
                 const newX = x + dx;
                 const newY = y + dy;
+                 // Check bounds for neighbor
                  if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
-                      const neighbor = grid[newY][newX];
-                      if (neighbor.isFlagged) {
-                           flaggedNeighbors++;
-                      } else if (!neighbor.isRevealed) {
-                           unknownNeighbors.push({x: newX, y: newY});
+                      const neighbor = grid[newY]?.[newX];
+                      if (neighbor) { // Check neighbor exists
+                          if (neighbor.isFlagged) {
+                               flaggedNeighbors++;
+                          } else if (!neighbor.isRevealed) {
+                               // Only add unrevealed AND unflagged neighbors to the list to be opened
+                               unknownAndUnflaggedNeighbors.push({x: newX, y: newY});
+                          }
                       }
                  }
             }
@@ -1194,31 +1327,34 @@
 
          // If the number of adjacent flags matches the cell's number, reveal the rest
          if(flaggedNeighbors === cell.adjacentMines){
-             unknownNeighbors.forEach(neighborPos => {
-                 // IMPORTANT: Reveal directly, don't call chord recursively from here
-                 // Call revealCell to handle mine checks and further propagation
+             unknownAndUnflaggedNeighbors.forEach(neighborPos => {
+                 // Use revealCell to handle mine checks and propagation correctly
                  revealCell(neighborPos.x, neighborPos.y);
              });
          }
+         // If chord fails (e.g., game ends due to hitting a mine), checkWin will be called within revealCell.
+         // If chord succeeds without ending game, checkWin is needed here.
+          if (!gameOver) checkWin(); // Check win condition after successful chord reveals
      }
 
      function revealAllMines(clickedX, clickedY) {
+        gameOver = true; // Ensure game over state is set
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                  const cell = grid[y]?.[x]; // Optional chaining for safety
                  if (cell && cell.element) {
                      cell.element.classList.remove('pressed'); // Ensure no stuck pressed state
                      if (cell.isMine) {
-                         if (!cell.isRevealed && !cell.isFlagged) {
+                         // Only reveal mines that are NOT correctly flagged
+                         if (!cell.isFlagged) {
                              cell.element.classList.add('mine-revealed');
                              cell.element.textContent = "💣";
+                             // Highlight the one they clicked specifically
+                             if (x === clickedX && y === clickedY) {
+                                 cell.element.classList.add('mine'); // Use the specific 'hit' style
+                             }
                          }
-                         // Highlight the one they clicked
-                         if (x === clickedX && y === clickedY) {
-                             cell.element.classList.add('mine'); // Use the specific 'hit' style if defined, else reuse mine-revealed maybe redder?
-                             cell.element.style.backgroundColor = 'red'; // Make the clicked one stand out
-                         }
-                     } else if (cell.isFlagged) { // Incorrectly flagged
+                     } else if (cell.isFlagged) { // Incorrectly flagged non-mine
                          cell.element.classList.remove('flagged');
                          cell.element.classList.add('incorrect-flag');
                          cell.element.textContent = 'X';
@@ -1232,45 +1368,58 @@
       if (gameOver) return;
 
       let revealedCount = 0;
-      let correctlyFlaggedMines = 0;
-      let totalMines = 0; // Recalculate actual mines on grid
+      let mineCount = 0; // Recalculate actual mines
+      let correctlyFlaggedCount = 0;
 
       for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-           const cell = grid[y]?.[x];
-           if (cell) {
-                if (cell.isMine) {
-                    totalMines++;
-                    if (cell.isFlagged) {
-                        correctlyFlaggedMines++;
-                    }
-                }
-                if (cell.isRevealed) {
-                    revealedCount++;
-                }
-           }
-        }
+          for (let x = 0; x < width; x++) {
+              const cell = grid[y]?.[x];
+              if (!cell) continue; // Skip if cell data doesn't exist
+
+              if (cell.isMine) {
+                  mineCount++;
+                  if (cell.isFlagged) {
+                      correctlyFlaggedCount++;
+                  }
+              }
+              if (cell.isRevealed) {
+                  revealedCount++;
+              }
+          }
       }
 
-      // Win condition: All non-mine squares are revealed
-      // (Total squares - total mines === revealed squares)
-      const totalSquares = width * height;
-      if (revealedCount === totalSquares - totalMines) {
-          // Double check if all mines are flagged (alternative win condition, good for safety)
-           if(minesLeft === 0 && correctlyFlaggedMines === totalMines) {
-               winGame();
-           } else if (revealedCount === totalSquares - totalMines) {
-               // If all non-mines revealed, auto-flag remaining mines and win
-               winGame(true); // Pass flag to indicate auto-flagging
-           }
+      // Check if calculated mine count matches expected (sanity check)
+      if (mineCount !== numMines && !firstClick) { // Allow mismatch before first click places mines
+          console.warn(`Mine count mismatch! Expected ${numMines}, found ${mineCount}.`);
+           // This might indicate an issue with mine placement or game state.
+           // Should we proceed? Let's assume numMines is the source of truth for winning.
+          mineCount = numMines; // Use the expected number for win check
       }
+
+
+      // Win Condition 1: All non-mine squares revealed
+      const totalSquares = width * height;
+      const nonMineSquares = totalSquares - mineCount;
+      if (revealedCount === nonMineSquares) {
+          winGame(true); // Auto-flag remaining mines and win
+          return;
+      }
+
+      // Win Condition 2: All mines correctly flagged AND all non-mines revealed
+      // (This is implicitly covered by condition 1 if flagging is accurate, but good secondary check)
+      // if (correctlyFlaggedCount === mineCount && minesLeft === 0 && revealedCount === nonMineSquares) {
+      //     winGame();
+      //     return;
+      // }
     }
+
 
     function winGame(autoFlag = false) {
         if (gameOver) return; // Prevent multiple win triggers
 
         gameOver = true;
         stopTimer();
+        console.log("Win condition met!");
 
         // Auto-flag remaining mines if necessary
         if (autoFlag) {
@@ -1278,7 +1427,7 @@
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
                     const cell = grid[y]?.[x];
-                    if (cell && cell.isMine && !cell.isFlagged) {
+                    if (cell && cell.isMine && !cell.isFlagged && !cell.isRevealed) { // Only flag unrevealed mines
                         cell.isFlagged = true;
                         cell.element.classList.add('flagged');
                         cell.element.textContent = '🚩';
@@ -1286,21 +1435,24 @@
                     }
                 }
             }
-            minesLeft -= flagsPlaced;
-            updateMinesLeftDisplay();
+             // Adjust minesLeft counter based on auto-flagging
+             minesLeft -= flagsPlaced;
+             if (minesLeft < 0) minesLeft = 0; // Ensure counter doesn't go negative
+             updateMinesLeftDisplay();
         }
 
-        flagIncorrectlyPlaced(); // Still useful to show X on wrong flags even on win
+        flagIncorrectlyPlaced(); // Show X on any flags placed on non-mines
         updateLeaderboard();
         showMessage("You Win! Time: " + time + " seconds");
 
+        // Clean up interaction states
         if (pressedCellElement) { pressedCellElement.classList.remove('pressed'); pressedCellElement = null; }
         isLeftMouseDown = false;
     }
 
 
     function flagIncorrectlyPlaced(){
-        // This is now mostly handled by revealAllMines on loss, but keep for win scenario
+        // Mark flags placed on non-mines with an 'X'
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                  const cell = grid[y]?.[x];
@@ -1309,11 +1461,6 @@
                     cell.element.classList.add('incorrect-flag');
                     cell.element.textContent = 'X';
                  }
-                 // Optionally, ensure all mines ARE flagged on win (if not auto-flagged)
-                 // if (gameOver && cell && cell.isMine && !cell.isFlagged && !cell.isRevealed) {
-                 //     cell.element.classList.add('flagged');
-                 //     cell.element.textContent = '🚩';
-                 // }
             }
         }
     }
@@ -1337,19 +1484,23 @@
 
     function stopTimer() {
        clearInterval(timerInterval);
-       gameStarted = false; // Allow timer to restart on new game
+       // Don't set gameStarted = false here, as game might be paused/won/lost
+       // It should be reset only in restartGame()
     }
 
-   // --- Refined Long Press Listener for Touch ---
+    // --- Refined Long Press Listener for Touch ---
    function addLongPressListener(element, callback) {
        let elementTouchTimerId = null; // Timer ID specific to this element's touch
        longPressFlaggedThisTouch = false; // Reset this flag for the element
+       let startX, startY; // Store start coordinates for move detection
 
        const handleTouchStart = (e) => {
            // Only trigger for single touch, and if no timer is already running for this element
            if (e.touches.length === 1 && elementTouchTimerId === null) {
                longPressFlaggedThisTouch = false; // Reset on new touch start
                ignoreNextClick = false;          // Reset ignore flag too
+               startX = e.touches[0].clientX;
+               startY = e.touches[0].clientY;
 
                // Start the timer
                elementTouchTimerId = setTimeout(() => {
@@ -1360,20 +1511,31 @@
                    elementTouchTimerId = null;       // Timer is done
 
                    // Prevent context menu on mobile after long press flag
-                   e.preventDefault();
+                   // e.preventDefault(); // This might interfere with scrolling sometimes, let's see
+
+                   // --- Visual Feedback Removal ---
+                   // Remove 'pressed' state after action is done
+                   const targetCell = e.target.closest('.cell');
+                   if (targetCell) {
+                       targetCell.classList.remove('pressed');
+                   }
+
 
                }, longPressDelay);
 
-                // Add a temporary 'pressed' visual feedback for touch
+                // --- Visual Feedback ---
                  const targetCell = e.target.closest('.cell');
-                 if (targetCell && !targetCell.classList.contains('revealed') && !targetCell.classList.contains('flagged')) {
-                      targetCell.classList.add('pressed');
+                 if (targetCell && !targetCell.classList.contains('revealed')) { // Add pressed unless revealed
+                      // Don't add pressed to flagged cells visually if it interferes
+                       if (!targetCell.classList.contains('flagged')) {
+                            targetCell.classList.add('pressed');
+                       }
                  }
            }
        };
 
        const handleTouchEnd = (e) => {
-            // Remove temporary 'pressed' visual feedback
+            // --- Visual Feedback Removal ---
              const targetCell = e.target.closest('.cell');
              if (targetCell) {
                   targetCell.classList.remove('pressed');
@@ -1384,36 +1546,52 @@
                // Timer was cleared *before* it completed (short tap)
                clearTimeout(elementTouchTimerId);
                elementTouchTimerId = null;
-               // Let the click handler manage the reveal for short taps
-           } else if (longPressFlaggedThisTouch) {
-                // Long press DID complete, prevent default actions (like click)
-                // e.preventDefault(); // Already done in timer callback if needed
-                longPressFlaggedThisTouch = false; // Reset for next interaction
-                // ignoreNextClick is already true, handleClick will handle it
+               // IMPORTANT: Do NOT set ignoreNextClick here. Let the subsequent handleClick decide.
+               // If it was a short tap, handleClick should proceed.
            }
+           // If elementTouchTimerId IS null here, it means either:
+           // 1. The timer completed (long press). longPressFlaggedThisTouch will be true.
+           // 2. The timer was cancelled by touchmove. longPressFlaggedThisTouch will be false.
+
+           if (longPressFlaggedThisTouch) {
+                // Long press DID complete. We've already set ignoreNextClick=true in the timer.
+                // Reset the flag for the *next* interaction.
+                longPressFlaggedThisTouch = false;
+                // Prevent potential default actions like link navigation if the cell was an anchor (it isn't)
+                // or context menu appearance on some browsers after touch end.
+                e.preventDefault();
+           }
+           // Otherwise (short tap or move-cancelled tap), let the click event proceed normally.
        };
 
        const handleTouchMove = (e) => {
-            // If touch moves significantly, cancel the long press timer
            if (elementTouchTimerId !== null) {
-                 // Simple move detection - could be refined with thresholds
-                clearTimeout(elementTouchTimerId);
-                elementTouchTimerId = null;
-                longPressFlaggedThisTouch = false; // Move cancels long press
-                ignoreNextClick = false;         // Don't ignore click if moved
+                 // Check if movement exceeds a threshold to cancel the long press
+                 const currentX = e.touches[0].clientX;
+                 const currentY = e.touches[0].clientY;
+                 const deltaX = Math.abs(currentX - startX);
+                 const deltaY = Math.abs(currentY - startY);
+                 const moveThreshold = 10; // Pixels threshold
 
-                 // Remove temporary 'pressed' visual feedback if move cancels
-                 const targetCell = e.target.closest('.cell');
-                 if (targetCell) {
-                      targetCell.classList.remove('pressed');
+                 if (deltaX > moveThreshold || deltaY > moveThreshold) {
+                     clearTimeout(elementTouchTimerId);
+                     elementTouchTimerId = null;
+                     longPressFlaggedThisTouch = false; // Move cancels long press
+                     ignoreNextClick = false;         // Don't ignore click if moved
+
+                     // --- Visual Feedback Removal ---
+                      const targetCell = e.target.closest('.cell');
+                      if (targetCell) {
+                           targetCell.classList.remove('pressed');
+                      }
                  }
            }
        };
 
-        // Add Touch Listeners: passive: false needed on touchstart if preventDefault might be called
+        // Add Touch Listeners: passive: false recommended for touchstart/touchend if preventDefault is used
         element.addEventListener('touchstart', handleTouchStart, { passive: false });
-        element.addEventListener('touchend', handleTouchEnd);
-        element.addEventListener('touchmove', handleTouchMove); // passive: true might be ok if move only cancels
+        element.addEventListener('touchend', handleTouchEnd, { passive: false });
+        element.addEventListener('touchmove', handleTouchMove, { passive: false }); // Check if move needs preventDefault
 
        // Store handlers for removal
        element._touchStartHandler = handleTouchStart;
@@ -1429,6 +1607,7 @@
              if (isLeftMouseDown && pressedCellElement === element) { // If leaving the pressed cell
                 element.classList.remove('pressed');
                 // Keep pressedCellElement assigned until mouseup or mouseover elsewhere
+                 pressedCellElement = null; // Make sure other cells can be pressed
              }
         };
         element.addEventListener('mouseleave', handleMouseLeave);
@@ -1436,22 +1615,20 @@
    }
 
    function removeLongPressListener(element) {
-        // Clear any active touch timer associated with this element (if it exists conceptually)
-        // Note: Direct access to elementTouchTimerId isn't feasible here, rely on cleanup elsewhere.
-
+        // Remove touch listeners using the stored handlers
         if (element._touchStartHandler) {
-            element.removeEventListener('touchstart', element._touchStartHandler, { passive: false }); // Match options
+            element.removeEventListener('touchstart', element._touchStartHandler, { passive: false });
             delete element._touchStartHandler;
         }
         if (element._touchEndHandler) {
-            element.removeEventListener('touchend', element._touchEndHandler);
+            element.removeEventListener('touchend', element._touchEndHandler, { passive: false });
             delete element._touchEndHandler;
         }
         if (element._touchMoveHandler) {
-            element.removeEventListener('touchmove', element._touchMoveHandler); // Match options used in add
+            element.removeEventListener('touchmove', element._touchMoveHandler, { passive: false });
             delete element._touchMoveHandler;
         }
-         // Remove mouse leave listener added by this function
+         // Remove mouse leave listener added by addLongPressListener
          if (element._mouseLeaveHandlerLP) {
              element.removeEventListener('mouseleave', element._mouseLeaveHandlerLP);
              delete element._mouseLeaveHandlerLP;
@@ -1463,9 +1640,17 @@
     function toggleSettings() {
         const settingsPanel = document.getElementById('settings-panel');
         const overlay = document.getElementById('overlay');
+        const attemptsSpan = document.getElementById('generation-attempts');
         if(settingsPanel.style.display === "block") {
             settingsPanel.style.display = "none";
             overlay.style.display = 'none';
+            // Show attempts only if No Guess Mode is active and game hasn't started
+             if (noGuessMode && firstClick && generationAttempts > 0) {
+                 attemptsSpan.textContent = `(${generationAttempts} attempts)`;
+             } else {
+                 attemptsSpan.textContent = ''; // Clear otherwise
+             }
+
         }
         else {
             settingsPanel.style.display = "block";
@@ -1473,11 +1658,14 @@
             document.getElementById('long-press-delay-value').textContent = longPressDelay;
             if (currentDifficulty === 'custom') {
                document.querySelector('.custom-settings').classList.add('active');
+               // Update max mines for custom based on current dimensions
+                const maxMines = (parseInt(document.getElementById('width').value) * parseInt(document.getElementById('height').value)) - 9;
+                document.getElementById('mines').max = maxMines > 0 ? maxMines : 1;
             } else {
                document.querySelector('.custom-settings').classList.remove('active');
             }
              // Hide generation attempts text when opening settings
-             document.getElementById('generation-attempts').textContent = '';
+             attemptsSpan.textContent = '';
         }
     }
     function updateTimerDisplay(){
@@ -1486,14 +1674,16 @@
         }
     }
     function updateMinesLeftDisplay(){
-         if (document.querySelector('#mines-left > div:nth-child(2)')) {
-            document.querySelector('#mines-left > div:nth-child(2)').textContent = minesLeft < 0 ? 0 : minesLeft; // Prevent negative display
+         const displayElement = document.querySelector('#mines-left > div:nth-child(2)');
+         if (displayElement) {
+            displayElement.textContent = minesLeft < 0 ? 0 : minesLeft; // Prevent negative display
          }
     }
 
     function setDifficulty(difficulty) {
       currentDifficulty = difficulty;
       const customSettings = document.querySelector('.custom-settings');
+      const minesInput = document.getElementById('mines');
        document.getElementById('generation-attempts').textContent = ''; // Clear attempts display
 
       switch (difficulty) {
@@ -1506,13 +1696,20 @@
             // Ensure current values are displayed
             document.getElementById('width').value = width;
             document.getElementById('height').value = height;
-            document.getElementById('mines').value = numMines;
+            minesInput.value = numMines;
+             // Update max mines for custom based on current dimensions
+             const maxMinesCustom = (width * height) - 9;
+             minesInput.max = maxMinesCustom > 0 ? maxMinesCustom : 1;
             return; // Don't restart yet for custom, wait for Apply
       }
         // Update display for non-custom difficulties
         document.getElementById('width').value = width;
         document.getElementById('height').value = height;
-        document.getElementById('mines').value = numMines;
+        minesInput.value = numMines;
+        // Update max mines for standard difficulties (redundant but safe)
+        const maxMinesStandard = (width * height) - 9;
+        minesInput.max = maxMinesStandard > 0 ? maxMinesStandard : 1;
+
 
         // Save the new standard difficulty immediately
         localStorage.setItem('currentDifficulty', currentDifficulty);
@@ -1525,15 +1722,22 @@
     }
 
    function applySettings() {
-        if (currentDifficulty === 'custom') {
-            const newWidth = parseInt(document.getElementById('width').value);
-            const newHeight = parseInt(document.getElementById('height').value);
-            const newNumMines = parseInt(document.getElementById('mines').value);
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        const minesInput = document.getElementById('mines');
 
-             if (isNaN(newWidth) || newWidth < 5 || newWidth > 50) { alert('Width must be between 5 and 50.'); return; } // Increased max size
-             if (isNaN(newHeight) || newHeight < 5 || newHeight > 50) { alert('Height must be between 5 and 50.'); return; } // Increased max size
-             // Ensure at least 9 safe squares for the first click area
-             const maxMines = (newWidth * newHeight) - 9;
+        if (currentDifficulty === 'custom') {
+            const newWidth = parseInt(widthInput.value);
+            const newHeight = parseInt(heightInput.value);
+            const newNumMines = parseInt(minesInput.value);
+
+             if (isNaN(newWidth) || newWidth < 5 || newWidth > 50) { alert('Width must be between 5 and 50.'); return; }
+             if (isNaN(newHeight) || newHeight < 5 || newHeight > 50) { alert('Height must be between 5 and 50.'); return; }
+
+             // Ensure max mines attribute is up-to-date before checking value
+             const maxMines = (newWidth * newHeight) - 9; // Need 9 safe squares
+             minesInput.max = maxMines > 0 ? maxMines : 1; // Update the input's max attribute
+
              if (isNaN(newNumMines) || newNumMines < 1 || newNumMines > maxMines) {
                  alert(`Mines must be between 1 and ${maxMines} (to allow safe start).`);
                  return;
@@ -1541,7 +1745,21 @@
              width = newWidth;
              height = newHeight;
              numMines = newNumMines;
+        } else {
+             // If not custom, ensure W/H/N match the selected standard difficulty
+              switch (currentDifficulty) {
+                  case 'beginner': width = 9; height = 9; numMines = 10; break;
+                  case 'intermediate': width = 16; height = 16; numMines = 40; break;
+                  case 'expert': width = 30; height = 16; numMines = 99; break;
+              }
+               // Update input displays to match standard difficulty
+               widthInput.value = width;
+               heightInput.value = height;
+               minesInput.value = numMines;
+               const maxMinesStd = (width * height) - 9;
+               minesInput.max = maxMinesStd > 0 ? maxMinesStd : 1;
         }
+
 
         // --- Save common settings ---
         playerName = document.getElementById('player-name').value.trim() || "Player";
@@ -1598,7 +1816,10 @@
         gameOver = false;
         minesLeft = numMines
         updateMinesLeftDisplay();
-         document.getElementById('generation-attempts').textContent = ''; // Clear attempts display on restart
+        generationAttempts = 0; // Reset attempts counter
+        const attemptsSpan = document.getElementById('generation-attempts');
+        if(attemptsSpan) attemptsSpan.textContent = ''; // Clear attempts display on restart
+
 
         // Reset ALL interaction states thoroughly
         ignoreNextClick = false;
@@ -1618,12 +1839,16 @@
         createGrid(); // Recreate grid and reattach listeners
         document.getElementById('message-box').style.display = 'none';
         document.getElementById('overlay').style.display = 'none';
+
+         // Re-apply correct flagging listeners based on current settings
+         updateFlagMethod();
     }
 
     document.getElementById('long-press-delay').addEventListener('input', (event) => {
         document.getElementById('long-press-delay-value').textContent = event.target.value;
-        // Update delay immediately for touch listeners if needed, or wait for Apply
-         // longPressDelay = parseInt(event.target.value); // Apply immediately? Or wait for Apply button? Let's wait.
+        // Update delay immediately ONLY if you want it live without apply (usually not recommended)
+        // longPressDelay = parseInt(event.target.value);
+        // updateFlagMethod(); // Re-attach listeners with new delay? Complicated. Better to wait for Apply.
     });
 
       function updateLeaderboard() {
@@ -1689,9 +1914,8 @@ async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [
         q = q.startAfter(lastVisible);
     }
 
-    // Fetch a batch. Fetching slightly more than needed initially might be useful
-    // if further client-side filtering were applied, but here we can fetch exactly targetCount.
-    q = q.limit(targetCount); // Fetch up to targetCount in this batch
+    // Fetch a batch. Fetching targetCount is usually sufficient here.
+    q = q.limit(targetCount);
 
     try {
         const documentSnapshots = await q.get();
@@ -1701,33 +1925,32 @@ async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [
         let addedCount = 0;
 
         documentSnapshots.forEach((doc) => {
-            // Add scores to our collected list if we haven't reached the target yet
             const data = doc.data();
-            // Basic validation: ensure score is a number > 0
+            // Basic validation: ensure score is a number > 0 and we haven't reached the target yet
             if (typeof data.score === 'number' && data.score > 0 && collectedScores.length < targetCount) {
                  collectedScores.push(data);
                  addedCount++;
             }
         });
 
-        // If we haven't reached the target count AND we received documents
-        // AND there might be more documents (indicated by newLastVisible), fetch the next batch.
-        // Note: Checking addedCount > 0 prevents infinite loops if Firestore returns empty sets.
-        if (collectedScores.length < targetCount && addedCount > 0 && newLastVisible) {
-             // console.log(`Fetching more for ${difficulty}. Found ${collectedScores.length}, need ${targetCount}`);
-             // Calculate remaining needed count for the next fetch
+        // Check if more fetching is needed:
+        // - We haven't reached the target count yet.
+        // - We actually added scores in this batch (addedCount > 0 prevents infinite loops on empty results).
+        // - Firestore indicated there might be more documents (newLastVisible is not null).
+        // - The number of docs received equals the limit (suggests more might exist beyond the limit).
+         if (collectedScores.length < targetCount && addedCount > 0 && newLastVisible && documentSnapshots.docs.length === targetCount) {
              const remainingCount = targetCount - collectedScores.length;
              return fetchScoresRecursive(difficulty, remainingCount, collectedScores, newLastVisible);
         } else {
              // We have enough scores OR there are no more documents to fetch
-             // console.log(`Finished fetching for ${difficulty}. Found ${collectedScores.length}`);
              return collectedScores; // Return the final list
         }
     } catch (error) {
         console.error(`Error fetching scores for ${difficulty}:`, error);
         document.getElementById('leaderboard-error').textContent = `Error loading ${difficulty} scores.`;
         document.getElementById('leaderboard-error').style.display = 'block';
-        throw error; // Re-throw the error to be caught by the main function
+        // Return what we have collected so far, or an empty array on complete failure
+        return collectedScores;
     }
 }
 
@@ -1735,7 +1958,8 @@ async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [
 async function loadOnlineLeaderboard() {
     document.getElementById('leaderboard-loading').style.display = 'block';
     document.getElementById('leaderboard-error').style.display = 'none'; // Hide previous errors
-    document.getElementById('leaderboard-beginner').innerHTML = ''; // Clear old data
+    // Clear old data immediately
+    document.getElementById('leaderboard-beginner').innerHTML = '';
     document.getElementById('leaderboard-intermediate').innerHTML = '';
     document.getElementById('leaderboard-expert').innerHTML = '';
 
@@ -1752,7 +1976,6 @@ async function loadOnlineLeaderboard() {
             leaderboardBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>'; // Show loading state per table
 
             // Fetch the required scores recursively
-            // Pass an empty array to start collection for this difficulty
             const scores = await fetchScoresRecursive(difficulty, targetScoreCount, []);
 
              leaderboardBody.innerHTML = ''; // Clear loading message
@@ -1760,12 +1983,14 @@ async function loadOnlineLeaderboard() {
             // Populate the table with the fetched scores
             if (scores.length > 0) {
                 let rank = 1;
+                // Ensure scores are sorted by score client-side as a fallback
+                 scores.sort((a, b) => a.score - b.score);
                 scores.forEach((data) => {
                     const row = leaderboardBody.insertRow();
                     row.insertCell().textContent = rank++;
-                    // Sanitize player name slightly (optional)
+                    // Sanitize player name slightly
                     const nameCell = row.insertCell();
-                    nameCell.textContent = String(data.playerName || 'Anonymous').substring(0, 20); // Limit length
+                    nameCell.textContent = String(data.playerName || 'Anonymous').substring(0, 20); // Limit length, handle null
                     row.insertCell().textContent = data.score + 's';
                 });
             } else {
@@ -1780,12 +2005,12 @@ async function loadOnlineLeaderboard() {
         document.getElementById('leaderboard-loading').style.display = 'none';
 
     } catch (error) {
-        // This catch block might be redundant if fetchScoresRecursive handles display,
-        // but good for catching errors in Promise.all itself or leaderboardBody lookup.
+        // Catch errors from Promise.all itself or leaderboardBody lookup.
+        // Specific fetch errors are handled within fetchScoresRecursive.
         console.error("Error loading one or more online leaderboards:", error);
         document.getElementById('leaderboard-loading').style.display = 'none';
-        // Keep specific error messages shown by fetchScoresRecursive
-        if (!document.getElementById('leaderboard-error').style.display !== 'none') {
+        // Display a general error if no specific error was already shown
+        if (document.getElementById('leaderboard-error').style.display === 'none') {
              document.getElementById('leaderboard-error').textContent = 'Error loading online leaderboards. Please try again later.';
              document.getElementById('leaderboard-error').style.display = 'block';
         }
@@ -1840,26 +2065,23 @@ async function loadOnlineLeaderboard() {
       height = parseInt(localStorage.getItem('height')) || 9;
       numMines = parseInt(localStorage.getItem('numMines')) || 10;
 
-        // Ensure settings panel reflects loaded custom dimensions if applicable
-         if (currentDifficulty === 'custom') {
-             document.getElementById('width').value = width;
-             document.getElementById('height').value = height;
-             document.getElementById('mines').value = numMines;
-             document.querySelector('.custom-settings').classList.add('active');
-         } else {
-             document.querySelector('.custom-settings').classList.remove('active');
-              // Apply standard difficulty dimensions (will call restart)
-             setDifficulty(currentDifficulty);
-         }
-
-
-      // If NOT custom, setDifficulty will call restart.
-      // If it IS custom, we need to restart here to apply the loaded custom dimensions.
-       if (currentDifficulty === 'custom') {
-           minesLeft = numMines; // Ensure minesLeft is correct
-           restartGame(); // Trigger restart to apply dimensions
-       }
-
+      // Apply loaded settings
+      const minesInput = document.getElementById('mines');
+      if (currentDifficulty === 'custom') {
+           document.getElementById('width').value = width;
+           document.getElementById('height').value = height;
+           minesInput.value = numMines;
+           const maxMines = (width * height) - 9;
+           minesInput.max = maxMines > 0 ? maxMines : 1;
+           document.querySelector('.custom-settings').classList.add('active');
+           // Need to restart manually for custom settings loaded
+           minesLeft = numMines;
+           restartGame();
+      } else {
+          document.querySelector('.custom-settings').classList.remove('active');
+           // setDifficulty will update inputs, potentially change W/H/N, and restart
+           setDifficulty(currentDifficulty);
+      }
 
       // Ensure flag listeners match loaded settings *after* potential restart
       updateFlagMethod();
@@ -1883,155 +2105,130 @@ async function loadOnlineLeaderboard() {
         return neighbors;
     }
 
-    function isSolvableWithoutGuessing(startX, startY) {
-        // Create a temporary grid representing the solver's knowledge
-        // -2: Unknown, -1: Flagged, 0-8: Revealed Number
-        const solverGrid = [];
-        const W = width; // Use current game dimensions
-        const H = height;
-        let revealedCount = 0;
-        let minesFound = 0;
-        const totalNonMines = (W * H) - numMines;
+     function isSolvableWithoutGuessing(startX, startY) {
+         // Create a temporary grid representing the solver's knowledge state
+         // state: -2 = unknown, -1 = flagged, 0-8 = revealed number
+         const solverGrid = Array(height).fill(null).map(() => Array(width).fill(null).map(() => ({ state: -2 })));
+         let revealedCount = 0;
+         let minesFound = 0;
+         const totalNonMines = (width * height) - numMines;
+         const processQueue = []; // Queue for zero propagation
 
-        for (let y = 0; y < H; y++) {
-            solverGrid[y] = [];
-            for (let x = 0; x < W; x++) {
-                solverGrid[y][x] = { state: -2 }; // Initially all unknown
-            }
-        }
+         // --- Solver Helper Functions ---
+         const solverReveal = (x, y) => {
+             if (x < 0 || x >= width || y < 0 || y >= height || solverGrid[y][x].state !== -2) return false;
+             if (grid[y][x].isMine) return false; // Should not happen if logic is sound
 
-        // Queue for processing revealed squares (especially zeros)
-        const processQueue = [];
+             const adjacentMines = grid[y][x].adjacentMines;
+             solverGrid[y][x].state = adjacentMines;
+             revealedCount++;
 
-        // Function to reveal a square within the solver
-        function solverReveal(x, y) {
-            if (x < 0 || x >= W || y < 0 || y >= H || solverGrid[y][x].state !== -2) {
-                return false; // Out of bounds or already known/flagged
-            }
-
-            if (grid[y][x].isMine) {
-                 // Should not happen if logic is correct, but indicates unsolvable
-                 console.error("Solver tried to reveal a mine at", x, y);
-                 return false; // Failed reveal
-            }
-
-            const adjacentMines = grid[y][x].adjacentMines;
-            solverGrid[y][x].state = adjacentMines;
-            revealedCount++;
-
-            if (adjacentMines === 0) {
-                // Add neighbors of zero to the processing queue
-                getNeighbors(x, y, W, H).forEach(n => {
-                    if (solverGrid[n.y][n.x].state === -2) { // Only queue unknown neighbors
-                         // Mark as queued to prevent duplicates? Simple check on state is often enough
-                        processQueue.push(n);
-                    }
-                });
-            }
-            return true; // Successful reveal
-        }
-
-         // Function to flag a square within the solver
-         function solverFlag(x, y) {
-             if (x < 0 || x >= W || y < 0 || y >= H || solverGrid[y][x].state !== -2) {
-                 return false; // Out of bounds or already known/revealed
+             if (adjacentMines === 0) {
+                 getNeighbors(x, y, width, height).forEach(n => {
+                     if (solverGrid[n.y][n.x].state === -2) {
+                         processQueue.push(n); // Add unknown neighbors of zero to queue
+                     }
+                 });
              }
-              if (!grid[y][x].isMine) {
-                  // Should not happen if logic is correct, indicates unsolvable
-                  console.error("Solver tried to flag a non-mine at", x, y);
-                  return false; // Failed flag
-              }
+             return true;
+         };
 
-             solverGrid[y][x].state = -1; // Mark as flagged
+         const solverFlag = (x, y) => {
+             if (x < 0 || x >= width || y < 0 || y >= height || solverGrid[y][x].state !== -2) return false;
+             if (!grid[y][x].isMine) return false; // Should not happen
+
+             solverGrid[y][x].state = -1;
              minesFound++;
              return true;
+         };
+
+         // --- Solver Execution ---
+
+         // 1. Initial Reveal (Guaranteed Safe Area)
+         for (let dy = -1; dy <= 1; dy++) {
+             for (let dx = -1; dx <= 1; dx++) {
+                 solverReveal(startX + dx, startY + dy); // Ignore return value here, it's guaranteed safe
+             }
          }
 
+         // 2. Main Deduction Loop
+         let madeProgress = true;
+         while (madeProgress) {
+             madeProgress = false;
 
-        // --- Start Solver ---
-
-        // 1. Reveal the initial safe area (usually 3x3 around startX, startY)
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-                if (!solverReveal(startX + dx, startY + dy)) {
-                     // If initial reveal fails (e.g., hits mine - shouldn't happen with placeMines logic), grid is invalid
-                     // console.warn("Initial reveal failed - likely mine placement issue");
-                     // return false; // Technically placeMines should prevent this
-                }
-            }
-        }
-
-
-        // 2. Main deduction loop
-        let madeProgress = true;
-        while (madeProgress) {
-            madeProgress = false;
-
-            // Process the queue (mostly for zero propagation)
-            while (processQueue.length > 0) {
-                const { x, y } = processQueue.shift();
-                if (solverGrid[y][x].state === -2) { // Ensure it wasn't revealed by another path
-                    if (solverReveal(x, y)) {
-                        madeProgress = true; // Revealing counts as progress
-                    }
-                }
-            }
-
-
-            // Apply deduction rules across the entire grid
-            for (let y = 0; y < H; y++) {
-                for (let x = 0; x < W; x++) {
-                    const cellState = solverGrid[y][x].state;
-
-                    if (cellState >= 1 && cellState <= 8) { // Only apply rules to revealed numbers > 0
-                        const neighbors = getNeighbors(x, y, W, H);
-                        let unknownNeighbors = [];
-                        let flaggedNeighbors = 0;
-
-                        neighbors.forEach(n => {
-                            if (solverGrid[n.y][n.x].state === -2) {
-                                unknownNeighbors.push(n);
-                            } else if (solverGrid[n.y][n.x].state === -1) {
-                                flaggedNeighbors++;
-                            }
-                        });
-
-                        // Rule 1: All mines flagged? Reveal remaining unknowns.
-                        if (flaggedNeighbors === cellState && unknownNeighbors.length > 0) {
-                            unknownNeighbors.forEach(n => {
-                                if (solverReveal(n.x, n.y)) {
-                                    madeProgress = true;
-                                }
-                            });
-                        }
-
-                         // Rule 2: All unknowns must be mines? Flag them.
-                         if (unknownNeighbors.length > 0 && flaggedNeighbors + unknownNeighbors.length === cellState) {
-                            unknownNeighbors.forEach(n => {
-                                if (solverFlag(n.x, n.y)) {
-                                    madeProgress = true;
-                                } else {
-                                     // If flagging fails (tried to flag non-mine), grid is unsolvable
-                                     return false; // Exit immediately
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-             // After applying rules, refill queue if any zeros were revealed
-             if (madeProgress) {
-                 // Rescan for newly revealed zeros or just rely on next loop iteration?
-                 // Relying on the next loop iteration is simpler.
+             // Process zero propagation first
+             while (processQueue.length > 0) {
+                 const { x, y } = processQueue.shift();
+                 if (solverGrid[y][x].state === -2) { // Re-check state in case it was processed differently
+                     if (solverReveal(x, y)) {
+                         madeProgress = true;
+                     }
+                 }
              }
 
+             // Apply deduction rules (iterate multiple times if needed, or until no progress)
+             let innerProgress = true;
+             while(innerProgress){
+                 innerProgress = false;
+                 for (let y = 0; y < height; y++) {
+                     for (let x = 0; x < width; x++) {
+                         const cellState = solverGrid[y][x].state;
+                         if (cellState >= 1 && cellState <= 8) {
+                             const neighbors = getNeighbors(x, y, width, height);
+                             let unknownNeighbors = [];
+                             let flaggedNeighbors = 0;
+                             neighbors.forEach(n => {
+                                 const nState = solverGrid[n.y][n.x].state;
+                                 if (nState === -2) unknownNeighbors.push(n);
+                                 else if (nState === -1) flaggedNeighbors++;
+                             });
 
-        } // End while(madeProgress)
+                             // Rule 1: If known_flags == number, reveal rest
+                             if (flaggedNeighbors === cellState && unknownNeighbors.length > 0) {
+                                 unknownNeighbors.forEach(n => {
+                                     if (solverReveal(n.x, n.y)) {
+                                         innerProgress = true; madeProgress = true;
+                                     }
+                                 });
+                                  // After revealing, this rule is done for this cell in this pass
+                                 continue;
+                             }
 
-        // 3. Check final state
-        // Solvable if all non-mine squares have been revealed
-        return revealedCount === totalNonMines;
-    }
+                             // Rule 2: If unknown_neighbors + known_flags == number, flag rest
+                             if (unknownNeighbors.length > 0 && flaggedNeighbors + unknownNeighbors.length === cellState) {
+                                 unknownNeighbors.forEach(n => {
+                                     if (solverFlag(n.x, n.y)) {
+                                          innerProgress = true; madeProgress = true;
+                                     } else {
+                                         // If solver tries to flag a non-mine, grid is unsolvable
+                                         // console.error("NG Solver: Rule 2 failed - tried to flag non-mine at", n.x, n.y);
+                                         // This indicates an issue with the grid generation or solver logic itself.
+                                         return false; // Unsolvable
+                                     }
+                                 });
+                                  // After flagging, this rule is done for this cell in this pass
+                                 continue;
+                             }
+                         }
+                     }
+                 }
+                 // Process queue again after rule application, as reveals might create new zeros
+                 while (processQueue.length > 0) {
+                     const { x, y } = processQueue.shift();
+                     if (solverGrid[y][x].state === -2) {
+                         if (solverReveal(x, y)) {
+                              innerProgress = true; madeProgress = true; // Progress was made
+                         }
+                     }
+                 }
+
+             } // End inner while loop
+
+         } // End outer while(madeProgress)
+
+         // 3. Final Check: Solvable if all non-mines are revealed
+         return revealedCount === totalNonMines;
+     }
 
 
     // --- Initialize ---
