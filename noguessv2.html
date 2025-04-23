@@ -788,12 +788,12 @@
     // --- Event Handlers ---
 
     function handleRightClick(event) {
-        event.preventDefault(); // Prevent browser context menu
-         // Only handle flag here if the method is set to rightClick and game is not over
-         if (flagMethod === 'rightClick' && !gameOver) {
-             handleFlag(event); // Flag immediately on right click contextmenu event
-         }
+        // This function's primary role now is just to prevent the default browser context menu
+        // when the contextmenu event fires on a cell.
+        // The actual flagging logic for right-click modes is handled in mousedown.
+        event.preventDefault();
     }
+
 
     function handleCellMouseDown(event) {
         if (gameOver) return;
@@ -803,12 +803,14 @@
 
         // --- Right Click (Button 2) ---
         if (event.button === 2) {
-            event.preventDefault(); // Still need this to be sure
-            // If right click flagging is enabled OR long press is enabled (as alternative)
+            event.preventDefault(); // Prevent context menu immediately on mousedown
+
+            // Handle flagging immediately on mousedown for both 'rightClick' and 'longPress' modes
             if ((flagMethod === 'rightClick' || flagMethod === 'longPress') && !gameOver) {
-                 handleFlag(event); // Flag immediately
+                 handleFlag(event); // Flag instantly
             }
-            return; // Don't process as left click
+            // No further action needed for right mousedown
+            return;
         }
 
         // --- Left Click (Button 0) ---
@@ -821,14 +823,16 @@
                  clearTimeout(mouseLongPressTimerId);
                  longPressJustFinishedMouse = false;
                  mouseLongPressTimerId = setTimeout(() => {
-                     handleFlag(event); // Flag action
+                     // Long press completed: Flag the cell
+                     handleFlag(event);
                      longPressJustFinishedMouse = true;
                      mouseLongPressTimerId = null;
                      if (pressedCellElement) {
                         pressedCellElement.classList.remove('pressed');
                      }
                      pressedCellElement = null;
-                     isLeftMouseDown = false; // End the "drag" state after long press action
+                     // End the "drag" state after long press action
+                     isLeftMouseDown = false;
                  }, longPressDelay);
              }
 
@@ -903,12 +907,8 @@
 
              // --- Check if a MOUSE long press just finished ---
              if (longPressJustFinishedMouse) {
-                 longPressJustFinishedMouse = false;
-                 // Remove visual state if mouse is still over the flagged cell
-                 if(mouseUpCellElement === initialMouseDownCell && pressedCellElement) {
-                    // Safest to just ensure initialMouseDownCell is cleared
-                 }
-                 initialMouseDownCell = null;
+                 longPressJustFinishedMouse = false; // Reset mouse flag
+                 initialMouseDownCell = null; // Reset initial cell
                  // Ensure pressedCellElement is cleared after long press action
                  if (pressedCellElement) {
                      pressedCellElement.classList.remove('pressed');
@@ -926,7 +926,6 @@
 
              if (gameOver) {
                  initialMouseDownCell = null;
-                 // pressedCellElement is already null
                  return;
              }
 
@@ -941,12 +940,10 @@
                           // Trigger first click based on the cell released over
                           handleFirstClick(x, y);
                       } else if (cellData.isRevealed) {
-                           // CHORDING: Allow chording if released over ANY revealed number cell,
-                           // regardless of where the click started.
+                           // CHORDING: Allow chording if released over ANY revealed number cell
                            chord(x, y);
                       } else if (!cellData.isFlagged) {
-                           // REVEALING: Reveal the cell under the cursor on release,
-                           // regardless of where the click started, as long as it's not flagged.
+                           // REVEALING: Reveal the cell under the cursor on release
                            revealCell(x, y);
                       }
                       // If cell is flagged, do nothing on left mouse release.
@@ -957,23 +954,31 @@
              initialMouseDownCell = null; // Reset initial cell tracking after processing
              // pressedCellElement is already null
 
-        } else {
-             // --- Handle non-left click mouseup or mouseup when not dragging ---
-             if (event.button !== 0) { // If it wasn't a left button mouse up
-                isLeftMouseDown = false; // Ensure state is reset
-             }
-             // Clean up visual state if needed
+        } else if (event.button === 2) {
+             // Handle right mouse button up - usually does nothing, but reset state just in case.
+            isLeftMouseDown = false; // Reset left mouse state (though it should be false anyway)
+             clearTimeout(mouseLongPressTimerId);
+             mouseLongPressTimerId = null;
              if (pressedCellElement) {
                   pressedCellElement.classList.remove('pressed');
                   pressedCellElement = null;
              }
-             // isLeftMouseDown should already be false if it wasn't button 0
+             initialMouseDownCell = null;
+             longPressJustFinishedMouse = false;
+        } else {
+             // Handle other mouseup scenarios or mouseup when not dragging
+             isLeftMouseDown = false; // Ensure state is reset
+             if (pressedCellElement) {
+                  pressedCellElement.classList.remove('pressed');
+                  pressedCellElement = null;
+             }
              clearTimeout(mouseLongPressTimerId);
              mouseLongPressTimerId = null;
              initialMouseDownCell = null;
              longPressJustFinishedMouse = false;
         }
     }
+
 
     // --- Game Logic ---
 
@@ -1325,7 +1330,7 @@
         }
     }
 
-   function checkWin() {
+    function checkWin() {
       if (gameOver || firstClick) return; // Already over or not started
 
       let revealedCount = 0;
@@ -1350,8 +1355,8 @@
       }
 
        // Use the *expected* number of mines for win condition checks
-       const effectiveMineCount = numMines;
-       if (mineCount !== effectiveMineCount && mineCount > 0) { // Only warn if mines have been placed
+       const effectiveMineCount = numMines; // Use the game setting
+       if (mineCount !== effectiveMineCount && mineCount > 0) { // Only warn if mines have been placed and differ
            console.warn(`Internal mine count (${mineCount}) differs from setting (${effectiveMineCount}). Using setting for win check.`);
        }
 
@@ -1367,7 +1372,6 @@
       }
       // No other win conditions. Flagging all mines does not trigger a win.
     }
-
 
     function winGame(autoFlag = false) {
         if (gameOver) return;
@@ -1588,7 +1592,7 @@
          const td = document.getElementById(`leaderboard-${difficultyString}-local`); if (td) td.textContent = bt === null ? '-' : bt + 's';
     }
     async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [], lastVisible = null) {
-        let q = db.collection('leaderboard').where('difficulty', '==', difficulty).where('score', '>', 1).orderBy('score', 'asc');
+        let q = db.collection('leaderboard').where('difficulty', '==', difficulty).where('score', '>', 0).orderBy('score', 'asc');
         if (lastVisible) q = q.startAfter(lastVisible);
         q = q.limit(targetCount);
         try {
@@ -1660,6 +1664,7 @@
          }
          return revealedCount === totalNonMines;
      }
+
     // --- Initialize ---
     loadSettings(); loadLeaderboard(); loadOnlineLeaderboard();
 
