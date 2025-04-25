@@ -104,29 +104,33 @@
         }
 
         /* Style for the header area containing logo and controls */
-        /* Style for the header area containing logo and controls */
         #header-area {
             display: flex;
             align-items: center; /* Vertically align items */
-            justify-content: space-between; /* Push logo left, controls right */
-            width: 100%; /* Make it span the container width */
+            /* justify-content: space-between; Removed to group logo and controls */
+            /* width: 100%; Removed to allow it to shrink to content width */
             margin-bottom: 10px; /* Space below the header area */
             padding: 0; /* Already handled by game-container padding */
-           /* gap: 20px; Removed, space-between handles main spacing */
+            /* gap: 20px;  -- Removed fixed gap, now controlled by classes */
+            transition: gap 0.3s ease; /* Add smooth transition for gap changes */
         }
+
+         /* CSS for dynamic header gap */
+        #header-area.header-gap-small {
+            gap: 20px; /* Default/Beginner */
+        }
+        #header-area.header-gap-medium {
+            gap: 50px; /* Intermediate */
+        }
+        #header-area.header-gap-large {
+            gap: 100px; /* Expert and wider custom */
+        }
+
 
         #logo {
             height: 60px; /* Increased size */
-             flex-shrink: 0; /* Prevent logo from shrinking if needed */
-        }
-
-        #controls {
-            display: flex;
-             gap: 10px; /* Gap between Mines and Timer */
-            /* width: 90%; Removed */
-            margin-bottom: 0; /* Removed */
-            align-items: center;
-            flex-shrink: 0; /* Prevent controls from shrinking */
+            /* margin-right: 15px; Removed, using gap on header-area instead */
+             flex-shrink: 0; /* Prevent logo from shrinking */
         }
 
         #grid-container {
@@ -749,7 +753,7 @@
       apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM",
       authDomain: "min3s-d13d8.firebaseapp.com",
       projectId: "min3s-d13d8",
-      storageBucket: "min3s-d13d8.firebaseapp.com", // Corrected storageBucket
+      storageBucket: "min3s-d13d8.appspot.com", // Corrected storageBucket
       messagingSenderId: "561325595032",
       appId: "1:561325595032:web:19657730940427fb4073ed",
       measurementId: "G-N25M3ZT9NQ"
@@ -1569,7 +1573,7 @@
           customSettings.classList.add('active');
             widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
             const maxMinesCustom = (width * height) - 9; minesInput.max = maxMinesCustom > 0 ? maxMinesCustom : 1;
-            return;
+            return; // Don't restart yet for custom, wait for apply
       }
         widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
         const maxMinesStandard = (width * height) - 9; minesInput.max = maxMinesStandard > 0 ? maxMinesStandard : 1;
@@ -1630,17 +1634,59 @@
         minesLeft = numMines; restartGame(); toggleSettings();
     }
     function showMessage(message) { document.getElementById('message-text').textContent = message; document.getElementById('message-box').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
+
     function restartGame() {
-        stopTimer(); time = 0; updateTimerDisplay(); gameStarted = false; firstClick = true; gameOver = false; minesLeft = numMines; updateMinesLeftDisplay(); generationAttempts = 0;
-        const attemptsSpan = document.getElementById('generation-attempts'); if(attemptsSpan) attemptsSpan.textContent = '';
-        ignoreNextClick = false; longPressFlaggedThisTouch = false; longPressJustFinishedMouse = false; isLeftMouseDown = false;
-        if (pressedCellElement) { pressedCellElement.classList.remove('pressed'); pressedCellElement = null; } initialMouseDownCell = null;
-        clearTimeout(touchLongPressTimerId); touchLongPressTimerId = null; clearTimeout(mouseLongPressTimerId); mouseLongPressTimerId = null; clearTimeout(doubleTapFlagTimer); doubleTapFlagTimer = null; clearTimeout(doubleTapChordTimer); doubleTapChordTimer = null;
+        stopTimer();
+        time = 0;
+        updateTimerDisplay();
+        gameStarted = false;
+        firstClick = true;
+        gameOver = false;
+        minesLeft = numMines;
+        updateMinesLeftDisplay();
+        generationAttempts = 0;
+        const attemptsSpan = document.getElementById('generation-attempts');
+        if(attemptsSpan) attemptsSpan.textContent = '';
+        ignoreNextClick = false;
+        longPressFlaggedThisTouch = false;
+        longPressJustFinishedMouse = false;
+        isLeftMouseDown = false;
+        if (pressedCellElement) {
+            pressedCellElement.classList.remove('pressed');
+            pressedCellElement = null;
+        }
+        initialMouseDownCell = null;
+        clearTimeout(touchLongPressTimerId);
+        touchLongPressTimerId = null;
+        clearTimeout(mouseLongPressTimerId);
+        mouseLongPressTimerId = null;
+        clearTimeout(doubleTapFlagTimer);
+        doubleTapFlagTimer = null;
+        clearTimeout(doubleTapChordTimer);
+        doubleTapChordTimer = null;
         document.removeEventListener('mouseup', handleDocumentMouseUp);
+
+        // --- Add logic to set header gap class ---
+        const headerArea = document.getElementById('header-area');
+        if (headerArea) {
+            headerArea.classList.remove('header-gap-small', 'header-gap-medium', 'header-gap-large'); // Clear existing gap classes
+
+            if (width <= 12) { // Small grids (Beginner & small custom)
+                headerArea.classList.add('header-gap-small');
+            } else if (width <= 22) { // Medium grids (Intermediate & medium custom)
+                headerArea.classList.add('header-gap-medium');
+            } else { // Large grids (Expert & large custom)
+                headerArea.classList.add('header-gap-large');
+            }
+        }
+        // --- End of header gap logic ---
+
         createGrid();
-        document.getElementById('message-box').style.display = 'none'; document.getElementById('overlay').style.display = 'none';
+        document.getElementById('message-box').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
         updateFlagMethod();
     }
+
     document.getElementById('long-press-delay').addEventListener('input', (event) => { document.getElementById('long-press-delay-value').textContent = event.target.value; longPressDelay = parseInt(event.target.value); });
 
     // --- Leaderboard Handling ---
@@ -1720,8 +1766,20 @@
       if (currentDifficulty === 'custom') { // Handle custom load
            widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
            const maxMines = (width * height) - 9; minesInput.max = maxMines > 0 ? maxMines : 1; document.querySelector('.custom-settings').classList.add('active');
-           minesLeft = numMines; restartGame(); // Manual restart for custom
+           minesLeft = numMines;
+           // No restart here for custom on load, restartGame called below if needed
+      } else {
+          // For standard difficulties, setDifficulty already called restartGame
       }
+
+      // Ensure restartGame is called to set initial gap class if needed
+      // (e.g., for initial load or if setDifficulty didn't call it for custom)
+      // However, setDifficulty for standard modes *already* calls restartGame.
+      // Only call restart explicitly if it's custom difficulty being loaded.
+      if (currentDifficulty === 'custom') {
+          restartGame();
+      }
+
       updateFlagMethod();
     }
 
