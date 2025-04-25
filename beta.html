@@ -94,7 +94,7 @@
          #game-container {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: center; /* Center the header-area and grid */
             margin-bottom: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
@@ -103,19 +103,21 @@
             padding: 10px;
         }
 
-        /* New style for the header area containing logo and controls */
+        /* Style for the header area containing logo and controls */
         #header-area {
             display: flex;
             align-items: center; /* Vertically align items */
-            justify-content: space-between; /* Push logo to left, controls to right */
-            width: 100%; /* Take full width of game-container padding area */
+            /* justify-content: space-between; Removed to group logo and controls */
+            /* width: 100%; Removed to allow it to shrink to content width */
             margin-bottom: 10px; /* Space below the header area */
             padding: 0; /* Already handled by game-container padding */
+            gap: 20px; /* Explicit gap between logo and controls */
         }
 
         #logo {
-            height: 50px; /* Adjust size as needed */
-            margin-right: 15px; /* Space between logo and controls */
+            height: 60px; /* Increased size */
+            /* margin-right: 15px; Removed, using gap on header-area instead */
+             flex-shrink: 0; /* Prevent logo from shrinking */
         }
 
         #grid-container {
@@ -200,11 +202,11 @@
         #controls {
             display: flex;
             /* justify-content: space-around; Removed as header-area handles spacing */
-             gap: 10px; /* Added gap between controls */
-            /* width: 90%; Removed as header-area manages flex item size */
-            margin-bottom: 0; /* Removed bottom margin, header-area adds it */
+             gap: 10px; /* Gap between Mines and Timer */
+            /* width: 90%; Removed */
+            margin-bottom: 0; /* Removed */
             align-items: center;
-            flex-shrink: 0; /* Prevent controls from shrinking when space is limited */
+            flex-shrink: 0; /* Prevent controls from shrinking */
         }
 
         #timer, #mines-left {
@@ -738,7 +740,7 @@
       apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM",
       authDomain: "min3s-d13d8.firebaseapp.com",
       projectId: "min3s-d13d8",
-      storageBucket: "min3s-d13d8.firebasestorage.app",
+      storageBucket: "min3s-d13d8.firebaseapp.com", // Corrected storageBucket
       messagingSenderId: "561325595032",
       appId: "1:561325595032:web:19657730940427fb4073ed",
       measurementId: "G-N25M3ZT9NQ"
