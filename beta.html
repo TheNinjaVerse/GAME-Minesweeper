@@ -126,6 +126,17 @@
             gap: 100px; /* Expert and wider custom */
         }
 
+        /* CSS for dynamic controls gap */
+        #controls.controls-gap-small {
+            gap: 10px; /* Default/Beginner */
+        }
+        #controls.controls-gap-medium {
+            gap: 25px; /* Intermediate */
+        }
+        #controls.controls-gap-large {
+            gap: 40px; /* Expert and wider custom */
+        }
+
 
         #logo {
             height: 60px; /* Increased size */
@@ -214,12 +225,11 @@
 
         #controls {
             display: flex;
-            /* justify-content: space-around; Removed as header-area handles spacing */
-             gap: 10px; /* Gap between Mines and Timer */
-            /* width: 90%; Removed */
-            margin-bottom: 0; /* Removed */
+            /* gap: 10px; -- Removed fixed gap, now controlled by classes */
+            margin-bottom: 0;
             align-items: center;
-            flex-shrink: 0; /* Prevent controls from shrinking */
+            flex-shrink: 0;
+            transition: gap 0.3s ease; /* Add smooth transition for gap changes */
         }
 
         #timer, #mines-left {
@@ -1666,20 +1676,27 @@
         doubleTapChordTimer = null;
         document.removeEventListener('mouseup', handleDocumentMouseUp);
 
-        // --- Add logic to set header gap class ---
+        // --- Logic to set dynamic gap classes ---
         const headerArea = document.getElementById('header-area');
-        if (headerArea) {
-            headerArea.classList.remove('header-gap-small', 'header-gap-medium', 'header-gap-large'); // Clear existing gap classes
+        const controlsDiv = document.getElementById('controls'); // Get controls div
 
-            if (width <= 12) { // Small grids (Beginner & small custom)
+        if (headerArea && controlsDiv) { // Check both exist
+            // Clear existing gap classes
+            headerArea.classList.remove('header-gap-small', 'header-gap-medium', 'header-gap-large');
+            controlsDiv.classList.remove('controls-gap-small', 'controls-gap-medium', 'controls-gap-large');
+
+            if (width <= 12) { // Small grids
                 headerArea.classList.add('header-gap-small');
-            } else if (width <= 22) { // Medium grids (Intermediate & medium custom)
+                controlsDiv.classList.add('controls-gap-small'); // Apply small gap to controls
+            } else if (width <= 22) { // Medium grids
                 headerArea.classList.add('header-gap-medium');
-            } else { // Large grids (Expert & large custom)
+                controlsDiv.classList.add('controls-gap-medium'); // Apply medium gap to controls
+            } else { // Large grids
                 headerArea.classList.add('header-gap-large');
+                controlsDiv.classList.add('controls-gap-large'); // Apply large gap to controls
             }
         }
-        // --- End of header gap logic ---
+        // --- End of dynamic gap logic ---
 
         createGrid();
         document.getElementById('message-box').style.display = 'none';
