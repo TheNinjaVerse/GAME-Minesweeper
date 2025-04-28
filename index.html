@@ -94,13 +94,54 @@
          #game-container {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: center; /* Center the header-area and grid */
             margin-bottom: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
             overflow: hidden;
             background-color: var(--container-bg);
             padding: 10px;
+        }
+
+        /* Style for the header area containing logo and controls */
+        #header-area {
+            display: flex;
+            align-items: center; /* Vertically align items */
+            /* justify-content: space-between; Removed to group logo and controls */
+            /* width: 100%; Removed to allow it to shrink to content width */
+            margin-bottom: 10px; /* Space below the header area */
+            padding: 0; /* Already handled by game-container padding */
+            /* gap: 20px;  -- Removed fixed gap, now controlled by classes */
+            transition: gap 0.3s ease; /* Add smooth transition for gap changes */
+        }
+
+         /* CSS for dynamic header gap */
+        #header-area.header-gap-small {
+            gap: 20px; /* Default/Beginner */
+        }
+        #header-area.header-gap-medium {
+            gap: 50px; /* Intermediate */
+        }
+        #header-area.header-gap-large {
+            gap: 100px; /* Expert and wider custom */
+        }
+
+        /* CSS for dynamic controls gap */
+        #controls.controls-gap-small {
+            gap: 10px; /* Default/Beginner */
+        }
+        #controls.controls-gap-medium {
+            gap: 25px; /* Intermediate */
+        }
+        #controls.controls-gap-large {
+            gap: 40px; /* Expert and wider custom */
+        }
+
+
+        #logo {
+            height: 70px; /* Increased size */
+            /* margin-right: 15px; Removed, using gap on header-area instead */
+             flex-shrink: 0; /* Prevent logo from shrinking */
         }
 
         #grid-container {
@@ -184,10 +225,11 @@
 
         #controls {
             display: flex;
-            justify-content: space-around;
-            width: 90%;
-            margin-bottom: 10px;
+            /* gap: 10px; -- Removed fixed gap, now controlled by classes */
+            margin-bottom: 0;
             align-items: center;
+            flex-shrink: 0;
+            transition: gap 0.3s ease; /* Add smooth transition for gap changes */
         }
 
         #timer, #mines-left {
@@ -550,16 +592,23 @@
 <body>
     <h1>Mobile Minesweeper game No Guess Mode and Online Leaderboards</h1>
     <div id="game-container">
-        <div id="controls">
-            <div id="mines-left">
-                <div id="mines-left-label">Mines</div>
-                <div></div>
-            </div>
-            <div id="timer">
-                 <div id="timer-label">Timer</div>
-                <div>0</div>
+        <!-- New header area for logo and controls -->
+        <div id="header-area">
+            <!-- Logo Image - Default to Dark Mode -->
+            <img id="logo" src="/DarkModeLogo.svg" alt="Min3s Logo">
+            <div id="controls">
+                <div id="mines-left">
+                    <div id="mines-left-label">Mines</div>
+                    <div></div>
+                </div>
+                <div id="timer">
+                     <div id="timer-label">Timer</div>
+                    <div>0</div>
+                </div>
             </div>
         </div>
+        <!-- End of header area -->
+
         <div id="grid-container"></div>
     </div>
     <div id="settings">
@@ -714,7 +763,7 @@
       apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM",
       authDomain: "min3s-d13d8.firebaseapp.com",
       projectId: "min3s-d13d8",
-      storageBucket: "min3s-d13d8.firebasestorage.app",
+      storageBucket: "min3s-d13d8.appspot.com", // Corrected storageBucket
       messagingSenderId: "561325595032",
       appId: "1:561325595032:web:19657730940427fb4073ed",
       measurementId: "G-N25M3ZT9NQ"
@@ -1534,7 +1583,7 @@
           customSettings.classList.add('active');
             widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
             const maxMinesCustom = (width * height) - 9; minesInput.max = maxMinesCustom > 0 ? maxMinesCustom : 1;
-            return;
+            return; // Don't restart yet for custom, wait for apply
       }
         widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
         const maxMinesStandard = (width * height) - 9; minesInput.max = maxMinesStandard > 0 ? maxMinesStandard : 1;
@@ -1562,25 +1611,99 @@
                const maxMinesStd = (width * height) - 9; minesInput.max = maxMinesStd > 0 ? maxMinesStd : 1;
         }
         playerName = document.getElementById('player-name').value.trim() || "Player"; localStorage.setItem('playerName', playerName); document.getElementById('player-name').value = playerName;
-        const lightModeCheckbox = document.getElementById('light-mode'); flagMethod = document.getElementById('flag-method').value; longPressDelay = parseInt(document.getElementById('long-press-delay').value); chordMethod = document.getElementById('chord-method').value; noGuessMode = document.getElementById('no-guess-mode').checked;
-        localStorage.setItem('darkMode', lightModeCheckbox.checked ? 'enabled' : 'disabled'); localStorage.setItem('flagMethod', flagMethod); localStorage.setItem('longPressDelay', longPressDelay); localStorage.setItem('chordMethod', chordMethod); localStorage.setItem('noGuessMode', noGuessMode);
-        localStorage.setItem('currentDifficulty', currentDifficulty); localStorage.setItem('width', width); localStorage.setItem('height', height); localStorage.setItem('numMines', numMines);
-        if (lightModeCheckbox.checked) { document.body.classList.add('light-mode'); document.getElementById('settings-panel').style.backgroundColor="white"; document.getElementById('message-box').style.backgroundColor="white"; }
-        else { document.body.classList.remove('light-mode'); document.getElementById('settings-panel').style.backgroundColor="var(--container-bg)"; document.getElementById('message-box').style.backgroundColor="var(--container-bg)"; }
+        const lightModeCheckbox = document.getElementById('light-mode');
+        flagMethod = document.getElementById('flag-method').value;
+        longPressDelay = parseInt(document.getElementById('long-press-delay').value);
+        chordMethod = document.getElementById('chord-method').value;
+        noGuessMode = document.getElementById('no-guess-mode').checked;
+
+        localStorage.setItem('darkMode', lightModeCheckbox.checked ? 'enabled' : 'disabled');
+        localStorage.setItem('flagMethod', flagMethod);
+        localStorage.setItem('longPressDelay', longPressDelay);
+        localStorage.setItem('chordMethod', chordMethod);
+        localStorage.setItem('noGuessMode', noGuessMode);
+        localStorage.setItem('currentDifficulty', currentDifficulty);
+        localStorage.setItem('width', width);
+        localStorage.setItem('height', height);
+        localStorage.setItem('numMines', numMines);
+
+        // Update theme and logo based on light mode state
+        const logoElement = document.getElementById('logo');
+        if (lightModeCheckbox.checked) {
+            document.body.classList.add('light-mode');
+            document.getElementById('settings-panel').style.backgroundColor="white";
+            document.getElementById('message-box').style.backgroundColor="white";
+            if (logoElement) logoElement.src = "/LightModeLogo.svg"; // Set light mode logo
+        } else {
+            document.body.classList.remove('light-mode');
+            document.getElementById('settings-panel').style.backgroundColor="var(--container-bg)";
+            document.getElementById('message-box').style.backgroundColor="var(--container-bg)";
+             if (logoElement) logoElement.src = "/DarkModeLogo.svg"; // Set dark mode logo
+        }
+
         minesLeft = numMines; restartGame(); toggleSettings();
     }
     function showMessage(message) { document.getElementById('message-text').textContent = message; document.getElementById('message-box').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
+
     function restartGame() {
-        stopTimer(); time = 0; updateTimerDisplay(); gameStarted = false; firstClick = true; gameOver = false; minesLeft = numMines; updateMinesLeftDisplay(); generationAttempts = 0;
-        const attemptsSpan = document.getElementById('generation-attempts'); if(attemptsSpan) attemptsSpan.textContent = '';
-        ignoreNextClick = false; longPressFlaggedThisTouch = false; longPressJustFinishedMouse = false; isLeftMouseDown = false;
-        if (pressedCellElement) { pressedCellElement.classList.remove('pressed'); pressedCellElement = null; } initialMouseDownCell = null;
-        clearTimeout(touchLongPressTimerId); touchLongPressTimerId = null; clearTimeout(mouseLongPressTimerId); mouseLongPressTimerId = null; clearTimeout(doubleTapFlagTimer); doubleTapFlagTimer = null; clearTimeout(doubleTapChordTimer); doubleTapChordTimer = null;
+        stopTimer();
+        time = 0;
+        updateTimerDisplay();
+        gameStarted = false;
+        firstClick = true;
+        gameOver = false;
+        minesLeft = numMines;
+        updateMinesLeftDisplay();
+        generationAttempts = 0;
+        const attemptsSpan = document.getElementById('generation-attempts');
+        if(attemptsSpan) attemptsSpan.textContent = '';
+        ignoreNextClick = false;
+        longPressFlaggedThisTouch = false;
+        longPressJustFinishedMouse = false;
+        isLeftMouseDown = false;
+        if (pressedCellElement) {
+            pressedCellElement.classList.remove('pressed');
+            pressedCellElement = null;
+        }
+        initialMouseDownCell = null;
+        clearTimeout(touchLongPressTimerId);
+        touchLongPressTimerId = null;
+        clearTimeout(mouseLongPressTimerId);
+        mouseLongPressTimerId = null;
+        clearTimeout(doubleTapFlagTimer);
+        doubleTapFlagTimer = null;
+        clearTimeout(doubleTapChordTimer);
+        doubleTapChordTimer = null;
         document.removeEventListener('mouseup', handleDocumentMouseUp);
+
+        // --- Logic to set dynamic gap classes ---
+        const headerArea = document.getElementById('header-area');
+        const controlsDiv = document.getElementById('controls'); // Get controls div
+
+        if (headerArea && controlsDiv) { // Check both exist
+            // Clear existing gap classes
+            headerArea.classList.remove('header-gap-small', 'header-gap-medium', 'header-gap-large');
+            controlsDiv.classList.remove('controls-gap-small', 'controls-gap-medium', 'controls-gap-large');
+
+            if (width <= 12) { // Small grids
+                headerArea.classList.add('header-gap-small');
+                controlsDiv.classList.add('controls-gap-small'); // Apply small gap to controls
+            } else if (width <= 22) { // Medium grids
+                headerArea.classList.add('header-gap-medium');
+                controlsDiv.classList.add('controls-gap-medium'); // Apply medium gap to controls
+            } else { // Large grids
+                headerArea.classList.add('header-gap-large');
+                controlsDiv.classList.add('controls-gap-large'); // Apply large gap to controls
+            }
+        }
+        // --- End of dynamic gap logic ---
+
         createGrid();
-        document.getElementById('message-box').style.display = 'none'; document.getElementById('overlay').style.display = 'none';
+        document.getElementById('message-box').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
         updateFlagMethod();
     }
+
     document.getElementById('long-press-delay').addEventListener('input', (event) => { document.getElementById('long-press-delay-value').textContent = event.target.value; longPressDelay = parseInt(event.target.value); });
 
     // --- Leaderboard Handling ---
@@ -1637,8 +1760,22 @@
     function loadSettings() {
       playerName = localStorage.getItem('playerName') || 'Player'; document.getElementById('player-name').value = playerName;
       const savedDarkMode = localStorage.getItem('darkMode'); const lightModeCheckbox = document.getElementById('light-mode');
-      if (savedDarkMode === 'enabled') { document.body.classList.add('light-mode'); lightModeCheckbox.checked = true; document.getElementById('settings-panel').style.backgroundColor="white"; document.getElementById('message-box').style.backgroundColor="white"; }
-      else { document.body.classList.remove('light-mode'); lightModeCheckbox.checked = false; document.getElementById('settings-panel').style.backgroundColor="var(--container-bg)"; document.getElementById('message-box').style.backgroundColor="var(--container-bg)"; }
+       const logoElement = document.getElementById('logo'); // Get logo element here
+      if (savedDarkMode === 'enabled') {
+          document.body.classList.add('light-mode');
+          lightModeCheckbox.checked = true;
+          document.getElementById('settings-panel').style.backgroundColor="white";
+          document.getElementById('message-box').style.backgroundColor="white";
+          if (logoElement) logoElement.src = "/LightModeLogo.svg"; // Set light mode logo
+      }
+      else {
+          document.body.classList.remove('light-mode');
+          lightModeCheckbox.checked = false;
+          document.getElementById('settings-panel').style.backgroundColor="var(--container-bg)";
+          document.getElementById('message-box').style.backgroundColor="var(--container-bg)";
+           if (logoElement) logoElement.src = "/DarkModeLogo.svg"; // Set dark mode logo
+      }
+
       flagMethod = localStorage.getItem('flagMethod') || 'longPress'; document.getElementById('flag-method').value = flagMethod; longPressDelay = parseInt(localStorage.getItem('longPressDelay')) || 500; document.getElementById('long-press-delay').value = longPressDelay; document.getElementById('long-press-delay-value').textContent = longPressDelay; chordMethod = localStorage.getItem('chordMethod') || 'singleTap'; document.getElementById('chord-method').value = chordMethod; noGuessMode = localStorage.getItem('noGuessMode') === 'true'; document.getElementById('no-guess-mode').checked = noGuessMode; document.getElementById('generation-attempts').textContent = '';
       currentDifficulty = localStorage.getItem('currentDifficulty') || 'beginner'; width = parseInt(localStorage.getItem('width')) || 9; height = parseInt(localStorage.getItem('height')) || 9; numMines = parseInt(localStorage.getItem('numMines')) || 10;
       const minesInput = document.getElementById('mines'); const widthInput = document.getElementById('width'); const heightInput = document.getElementById('height');
@@ -1646,8 +1783,20 @@
       if (currentDifficulty === 'custom') { // Handle custom load
            widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
            const maxMines = (width * height) - 9; minesInput.max = maxMines > 0 ? maxMines : 1; document.querySelector('.custom-settings').classList.add('active');
-           minesLeft = numMines; restartGame(); // Manual restart for custom
+           minesLeft = numMines;
+           // No restart here for custom on load, restartGame called below if needed
+      } else {
+          // For standard difficulties, setDifficulty already called restartGame
       }
+
+      // Ensure restartGame is called to set initial gap class if needed
+      // (e.g., for initial load or if setDifficulty didn't call it for custom)
+      // However, setDifficulty for standard modes *already* calls restartGame.
+      // Only call restart explicitly if it's custom difficulty being loaded.
+      if (currentDifficulty === 'custom') {
+          restartGame();
+      }
+
       updateFlagMethod();
     }
 
@@ -1675,7 +1824,6 @@
 
     // --- Initialize ---
     loadSettings(); loadLeaderboard(); loadOnlineLeaderboard();
-//testtttt
     </script>
 </body>
 </html>
