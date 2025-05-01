@@ -1202,7 +1202,7 @@
                             console.log(`No Guess Mode: Attempt ${generationAttempts}...`);
                             attemptsSpan.textContent = `Generating... (${generationAttempts})`;
                         }
-                        if (generationAttempts > 5000) { // Timeout
+                        if (generationAttempts > 50000) { // Timeout
                              console.error(`No Guess Mode: Generation timed out after ${generationAttempts} attempts.`);
                              alert(`Failed to generate a solvable grid in No Guess Mode after ${generationAttempts} tries. Try reducing density or grid size, or disable No Guess Mode.`);
                              attemptsSpan.textContent = '(Generation Failed)';
