@@ -2118,7 +2118,7 @@
     async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [], lastVisible = null) {
         let q = db.collection('leaderboard')
                   .where('difficulty', '==', difficulty)
-                  .where('score', '>', 1) // Ensure score is positive
+                  .where('score', '>', 0) // Ensure score is positive
                   .orderBy('score', 'asc');
         if (lastVisible) {
             q = q.startAfter(lastVisible);
