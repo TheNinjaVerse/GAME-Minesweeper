@@ -1,10 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Min3s – Mobile Minesweeper Game No Guess with Leaderboards</title>
-<meta name="description" content="Play Minesweeper online at Min3s.click! No ads, Mobile-friendly, no guess mode, and live global leaderboard.">
+    <!-- MODIFIED description -->
+    <meta name="description" content="Play Minesweeper online at Min3s.click! No ads, Mobile‑friendly, no‑guess mode, and live global leaderboard.">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <!-- Firebase App (include only once) -->
     <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-app-compat.js"></script>
@@ -35,6 +37,10 @@
             --control-border-color: #aaa;
             --control-bg-color: #444;
             --cell-pressed-bg: #777; /* Added style for pressed cell */
+            --input-bg-color: #555; /* Added for inputs */
+            --input-border-color: #777; /* Added for inputs */
+            --input-text-color: white; /* Added for inputs */
+            --settings-panel-width: 300px; /* Width for the side panel */
 
              /* Dark mode number colors (lighter) */
             --num-1-color-dark: #ADD8E6; /* Light Blue */
@@ -71,6 +77,9 @@
             --control-border-color: #808080;
             --control-bg-color: #f0f0f0;
             --cell-pressed-bg: #e8e8e8; /* Added style for pressed cell */
+            --input-bg-color: #fdfdfd; /* Added for inputs */
+            --input-border-color: #bbb; /* Added for inputs */
+            --input-text-color: black; /* Added for inputs */
         }
 
 
@@ -79,9 +88,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start; /* Align content to the top */
             min-height: 100vh;
             margin: 0;
+            padding-top: 20px; /* Add some padding at the top */
             background-color: var(--bg-color);
             color: var(--text-color);
             user-select: none;
@@ -90,6 +100,7 @@
             -ms-user-select: none;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation; /* Prevent double-tap zoom */
+            box-sizing: border-box;
         }
          #game-container {
             display: flex;
@@ -98,51 +109,67 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
-            overflow: hidden;
+            overflow: visible; /* Allow difficulty dropdown to overflow visually */
             background-color: var(--container-bg);
-            padding: 10px;
+            padding: 15px; /* Increased padding slightly */
+            position: relative; /* Needed for absolute positioning if used, but flex is fine */
         }
 
         /* Style for the header area containing logo and controls */
         #header-area {
             display: flex;
             align-items: center; /* Vertically align items */
-            /* justify-content: space-between; Removed to group logo and controls */
-            /* width: 100%; Removed to allow it to shrink to content width */
-            margin-bottom: 10px; /* Space below the header area */
-            padding: 0; /* Already handled by game-container padding */
-            /* gap: 20px;  -- Removed fixed gap, now controlled by classes */
+            justify-content: center; /* Center the items horizontally */
+            width: 100%; /* Take full width of the container */
+            margin-bottom: 15px; /* Space below the header area */
+            padding: 0;
             transition: gap 0.3s ease; /* Add smooth transition for gap changes */
         }
 
          /* CSS for dynamic header gap */
-        #header-area.header-gap-small {
-            gap: 20px; /* Default/Beginner */
-        }
-        #header-area.header-gap-medium {
-            gap: 50px; /* Intermediate */
-        }
-        #header-area.header-gap-large {
-            gap: 100px; /* Expert and wider custom */
-        }
+        #header-area.header-gap-small { gap: 20px; }
+        #header-area.header-gap-medium { gap: 50px; }
+        #header-area.header-gap-large { gap: 100px; }
 
         /* CSS for dynamic controls gap */
-        #controls.controls-gap-small {
-            gap: 10px; /* Default/Beginner */
-        }
-        #controls.controls-gap-medium {
-            gap: 25px; /* Intermediate */
-        }
-        #controls.controls-gap-large {
-            gap: 40px; /* Expert and wider custom */
-        }
+        #controls.controls-gap-small { gap: 10px; }
+        #controls.controls-gap-medium { gap: 25px; }
+        #controls.controls-gap-large { gap: 40px; }
 
 
         #logo {
-            height: 70px; /* Increased size */
-            /* margin-right: 15px; Removed, using gap on header-area instead */
-             flex-shrink: 0; /* Prevent logo from shrinking */
+            height: 70px;
+            flex-shrink: 0;
         }
+
+        /* New Difficulty Selector Area */
+        #difficulty-selector-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px; /* Space below the dropdown */
+            width: 100%;
+        }
+
+        #difficulty-selector-area label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        #difficulty-selector {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--control-border-color);
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            font-size: 1em;
+            cursor: pointer;
+        }
+        #difficulty-selector:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--button-bg);
+        }
+
 
         #grid-container {
             display: grid;
@@ -156,7 +183,6 @@
             -ms-user-select: none;
              user-select: none;
              -webkit-tap-highlight-color: transparent;
-             /* touch-action: manipulation; might also be helpful here */
         }
 
         .cell {
@@ -243,6 +269,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-width: 80px; /* Increased min-width to accommodate decimals */
+            text-align: center;
         }
         #timer-label, #mines-left-label {
             font-size: 0.8em;
@@ -250,45 +278,64 @@
             margin-bottom: 2px;
         }
 
-        #settings {
+        /* REMOVED OLD SETTINGS BUTTON DIV */
+        /* #settings {
             margin-top: 20px;
-        }
+        } */
 
-        #settings button {
-            padding: 10px 20px;
-            font-size: 1.1em;
+        /* Settings Toggle Button (New Side Button) */
+        #settings-toggle-button {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            writing-mode: vertical-rl; /* Rotate text */
+            text-orientation: mixed;
             background-color: var(--button-bg);
             color: var(--button-text-color);
             border: none;
-            border-radius: 8px;
+            padding: 15px 8px;
+            font-size: 1.1em;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            border-radius: 8px 0 0 8px; /* Rounded corners on the left */
+            box-shadow: -2px 0px 5px rgba(0,0,0,0.2);
+            z-index: 1005; /* Above game, below panel overlay */
             transition: background-color 0.3s;
         }
 
-        #settings button:hover {
+        #settings-toggle-button:hover {
             background-color: var(--button-hover-bg);
         }
 
-          #settings-panel {
-            display: none;
+         /* Settings Panel (New Side Panel) */
+        #settings-panel {
+            display: block; /* Always block, position controls visibility */
             position: fixed;
-            top: 50%; /* Start at 50% */
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: 0;
+            right: calc(-1 * var(--settings-panel-width) - 10px); /* Start hidden off-screen */
+            width: var(--settings-panel-width);
+            height: 100vh; /* Full viewport height */
             background-color: var(--container-bg);
             color: var(--text-color);
             padding: 25px;
-            border: 2px solid #888;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-            z-index: 1000;
-            width: 90%;
-            max-width: 450px;
-            border-radius: 12px;
+            border-left: 2px solid var(--grid-border-color); /* Border on the visible edge */
+            box-shadow: -5px 0px 15px rgba(0,0,0,0.3);
+            z-index: 1010; /* Above toggle button and overlay */
             overflow-y: auto;  /* Enable vertical scrolling */
-            max-height: 80vh; /* Limit height to 80% of viewport height */
-
+            box-sizing: border-box; /* Include padding in width */
+            transition: right 0.3s ease-in-out; /* Slide animation */
         }
+
+        #settings-panel.open {
+            right: 0; /* Slide into view */
+        }
+
+        #settings-panel h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         #settings-panel label {
             display: block;
             margin-bottom: 6px;
@@ -297,25 +344,32 @@
 
         #settings-panel input[type="number"],
         #settings-panel input[type="range"],
-        #settings-panel input[type="text"] { /* Apply styles to text input too */
-            width: 70px;
+        #settings-panel input[type="text"],
+        #settings-panel select { /* Apply styles to select too */
+            width: calc(100% - 20px); /* Adjusted width calculation */
             margin-bottom: 12px;
             padding: 8px;
-            border: 1px solid #bbb;
+            border: 1px solid var(--input-border-color);
             border-radius: 5px;
             font-size: 1em;
+            background-color: var(--input-bg-color);
+            color: var(--input-text-color);
+            box-sizing: border-box;
         }
-         #settings-panel input[type="text"]{
-             width: calc(100% - 20px); /* Take full width minus padding */
-         }
+
+        #settings-panel input[type="number"] {
+             width: 70px; /* Keep number inputs smaller */
+        }
 
         #settings-panel input[type="range"] {
             width: 100%;
+            padding: 0; /* Remove padding for range */
         }
 
         #settings-panel button {
             padding: 10px 20px;
             margin-top: 12px;
+            margin-right: 10px; /* Space between buttons */
             font-size: 1.1em;
             background-color: var(--button-bg);
             color: var(--button-text-color);
@@ -325,35 +379,36 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             transition: background-color 0.3s;
         }
+        #settings-panel button:last-of-type {
+             margin-right: 0;
+        }
 
         #settings-panel button:hover {
-            background-color: var(--button-hover-bg);;
+            background-color: var(--button-hover-bg);
         }
 
         #settings-panel .setting-group {
-           margin-bottom: 15px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
+           margin-bottom: 20px; /* Increased spacing */
+            border-bottom: 1px solid var(--grid-border-color); /* Use grid border color */
+            padding-bottom: 15px;
         }
-          #settings-panel .difficulty-buttons {
-            display: flex;
-            justify-content: space-between; /* Evenly space buttons */
-            margin-bottom: 15px;
-        }
-          #settings-panel .difficulty-buttons button {
-            flex: 1; /* Each button takes equal width */
-            margin: 0 5px; /* Space between buttons */
+        #settings-panel .setting-group:last-of-type {
+            border-bottom: none; /* No border on the last group */
         }
 
+        /* REMOVED Old Difficulty Buttons Style */
+        /* #settings-panel .difficulty-buttons { ... } */
+
+
         #overlay {
-            display: none;
+            display: none; /* Hidden by default */
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.6);
-            z-index: 999;
+            z-index: 1000; /* Below settings panel, above content */
         }
 
         #message-box {
@@ -367,7 +422,7 @@
             padding: 25px;
             border: 2px solid #888;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-            z-index: 1001;
+            z-index: 1011; /* Above settings panel */
             text-align: center;
             border-radius: 12px;
             width: 80%;
@@ -393,16 +448,24 @@
         #message-text {
             font-size: 1.2em;
             margin-bottom: 15px;
-
         }
 
         /* Toggle switch styles */
+        .switch-container { /* Container for label and switch */
+             display: flex;
+             align-items: center;
+             margin-bottom: 12px;
+        }
+        .switch-container label {
+            margin-bottom: 0; /* Remove bottom margin from label */
+            margin-right: 10px; /* Space between label and switch */
+        }
         .switch {
           position: relative;
           display: inline-block;
           width: 60px;
           height: 34px;
-          margin-bottom: 12px;
+          /* margin-bottom: 12px; Removed */
           vertical-align: middle; /* Align with label */
         }
 
@@ -451,36 +514,42 @@
           -ms-transform: translateX(26px);
           transform: translateX(26px);
         }
-        #settings-panel select{
-            margin-bottom: 10px;
-            padding: 5px;
-        }
+
         #leaderboard {
-            margin-top: 20px;
+            margin-top: 30px; /* Increased margin */
             text-align: center;
+             width: 95%; /* Make leaderboards wider */
+            max-width: 1200px; /* Max width for very large screens */
+             margin-left: auto;
+             margin-right: auto;
         }
 
         #leaderboard h3 {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         #leaderboard table {
-            width: 80%;
+            width: 90%; /* Relative width */
             max-width: 500px; /* Limit width for local leaderboard */
             margin: 0 auto 20px auto; /* Center and add bottom margin */
             border-collapse: collapse;
+            background-color: var(--container-bg); /* Match container */
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+             border-radius: 8px;
+             overflow: hidden; /* Clip corners */
         }
 
 
         #leaderboard th, #leaderboard td {
-            padding: 8px;
-            border: 1px solid var(--control-border-color);
+            padding: 10px; /* Increased padding */
+            border: 1px solid var(--grid-border-color);
             text-align: center;
         }
 
         #leaderboard th {
             background-color: var(--control-bg-color);
             color: var(--text-color);
+            font-weight: bold;
         }
         .custom-settings {
             display: none; /* Initially hidden */
@@ -493,45 +562,29 @@
             margin-top: 10px;
             font-size: 1.1em;
         }
-        #leaderboard {
-            margin-top: 20px;
-            text-align: center;
-        }
 
-        #leaderboard h3 {
-            margin-bottom: 10px;
-        }
-
-        #leaderboard th, #leaderboard td {
-            padding: 8px;
-            border: 1px solid var(--control-border-color);
-            text-align: center;
-        }
-
-        #leaderboard th {
-            background-color: var(--control-bg-color);
-            color: var(--text-color);
-       }
-      #leaderboard-loading {
-          margin-bottom: 10px;
-          text-align: center; /* Center loading text */
+      #leaderboard-loading, #leaderboard-error {
+          margin-bottom: 15px;
+          text-align: center; /* Center loading/error text */
           width: 100%;
+          font-size: 1.1em;
       }
        /* Style for online leaderboard tables */
       #online-leaderboard-container {
         display: flex; /* Use flexbox for side-by-side tables */
         justify-content: space-around; /* Distribute space evenly */
         flex-wrap: wrap; /* Allow tables to wrap on smaller screens */
-        width: 90%;
+        width: 95%; /* Make leaderboards wider */
         max-width: 1200px; /* Optional max width for very large screens */
-        margin: 20px auto;
+        margin: 30px auto; /* Center and add vertical margin */
+        gap: 20px; /* Add gap between sections */
 
       }
       /* Individual leaderboard section */
         .leaderboard-section {
-            width: 48%; /* Slightly less than half to allow for spacing */
+            flex: 1 1 300px; /* Flex grow, shrink, basis (min width) */
             margin-bottom: 20px; /* Space below each section */
-            padding: 10px;
+            padding: 15px; /* Increased padding */
             background-color: var(--container-bg); /* Match container background */
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -540,9 +593,10 @@
 
        .leaderboard-section h4 {
            margin-top: 0;
-           margin-bottom: 10px;
+           margin-bottom: 15px; /* Increased spacing */
            text-align: center;
            color: var(--text-color);
+           font-size: 1.2em; /* Slightly larger title */
        }
 
       .leaderboard-section table {
@@ -551,10 +605,10 @@
       }
         .leaderboard-section th,
         .leaderboard-section td {
-             padding: 6px; /* Slightly reduced padding */
-              border: 1px solid var(--control-border-color);
+             padding: 8px; /* Standard padding */
+              border: 1px solid var(--grid-border-color);
               text-align: center;
-              font-size: 0.9em; /* Slightly smaller font */
+              font-size: 0.95em; /* Standard font size */
         }
         .leaderboard-section th {
              background-color: var(--control-bg-color);
@@ -565,11 +619,20 @@
       /* Responsive adjustments */
       @media (max-width: 768px) {
         #online-leaderboard-container {
-          flex-direction: column; /* Stack tables vertically on smaller screens */
-          align-items: center; /* Center sections */
+          /* Keep flex-direction row, rely on wrapping */
+          justify-content: center; /* Center items when they wrap */
         }
           .leaderboard-section {
-            width: 90%; /* Sections take full width on smaller screens */
+            flex-basis: 90%; /* Allow sections to take more width */
+          }
+          #settings-panel {
+              width: 280px; /* Slightly narrower panel on mobile */
+              right: calc(-280px - 10px);
+              :root { --settings-panel-width: 280px; } /* Update CSS variable */
+          }
+          #settings-toggle-button {
+              padding: 12px 6px; /* Adjust padding */
+              font-size: 1em;
           }
       }
        #generation-attempts {
@@ -585,16 +648,23 @@
           left: -9999px;
         }
 
-
+        /* === ADDED: Legacy-icon tooltip / pointer === */
+        .legacy-icon {
+          cursor: help; /* shows ? cursor on hover */
+          margin-left: 4px; /* Add slight space before icon */
+        }
 
     </style>
 </head>
 <body>
     <h1>Mobile Minesweeper game No Guess Mode and Online Leaderboards</h1>
+
+    <!-- Settings Toggle Button -->
+    <button id="settings-toggle-button" onclick="toggleSettings()">Settings</button>
+
     <div id="game-container">
-        <!-- New header area for logo and controls -->
+        <!-- Header area for logo and controls -->
         <div id="header-area">
-            <!-- Logo Image - Default to Dark Mode -->
             <img id="logo" src="/DarkModeLogo.svg" alt="Min3s Logo">
             <div id="controls">
                 <div id="mines-left">
@@ -603,52 +673,69 @@
                 </div>
                 <div id="timer">
                      <div id="timer-label">Timer</div>
-                    <div>0</div>
+                    <div>0.000</div> <!-- Initial display with decimals -->
                 </div>
             </div>
         </div>
         <!-- End of header area -->
 
+        <!-- New Difficulty Selector Area -->
+        <div id="difficulty-selector-area">
+            <label for="difficulty-selector">Difficulty:</label>
+            <select id="difficulty-selector" onchange="handleDifficultyChange()">
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="expert">Expert</option>
+                <option value="custom">Custom</option>
+            </select>
+        </div>
+        <!-- End of Difficulty Selector Area -->
+
         <div id="grid-container"></div>
     </div>
-    <div id="settings">
-        <button onclick="toggleSettings()">Settings</button>
-    </div>
 
+      <!-- Settings Side Panel -->
       <div id="settings-panel">
         <h2>Settings</h2>
-        <div class="setting-group difficulty-buttons">
-            <button onclick="setDifficulty('beginner')">Beginner</button>
-            <button onclick="setDifficulty('intermediate')">Intermediate</button>
-            <button onclick="setDifficulty('expert')">Expert</button>
-            <button onclick="setDifficulty('custom')">Custom</button> <!-- Custom Difficulty Button -->
-        </div>
+
+        <!-- Removed Difficulty Buttons Section -->
+        <!-- <div class="setting-group difficulty-buttons"> ... </div> -->
+
         <div class="setting-group">
             <label for="player-name">Your Name:</label>
             <input type="text" id="player-name" value="Player" placeholder="Enter your name">
         </div>
 
+        <!-- Custom settings appear only when difficulty is custom -->
         <div class="custom-settings setting-group">
-            <label for="width">Width:</label>
-            <input type="number" id="width" min="5" max="50" value="9"> <!-- Increased max size -->
-            <label for="height">Height:</label>
-            <input type="number" id="height" min="5" max="50" value="9"> <!-- Increased max size -->
-            <label for="mines">Mines:</label>
-            <input type="number" id="mines" min="1" max="2491" value="10"> <!-- Max mines adjusted based on max w/h -->
+            <h3 id="custom-difficulty-label">Custom Difficulty</h3>
+             <label for="width">Width:</label>
+             <input type="number" id="width" min="5" max="50" value="9">
+             <br> <!-- Simple line break for better spacing -->
+             <label for="height">Height:</label>
+             <input type="number" id="height" min="5" max="50" value="9">
+             <br>
+             <label for="mines">Mines:</label>
+             <input type="number" id="mines" min="1" max="2491" value="10">
+        </div>
+
+        <div class="setting-group">
+             <div class="switch-container">
+                 <label for="light-mode">Light Mode:</label>
+                 <label class="switch">
+                    <input type="checkbox" id="light-mode">
+                    <span class="slider"></span>
+                 </label>
+             </div>
         </div>
         <div class="setting-group">
-             <label for="light-mode" style="display: inline-block; margin-right: 10px;">Light Mode:</label>
-             <label class="switch">
-                <input type="checkbox" id="light-mode">
-                <span class="slider"></span>
-             </label>
-        </div>
-        <div class="setting-group">
-             <label for="no-guess-mode" style="display: inline-block; margin-right: 10px;">No Guess Mode:</label>
-             <label class="switch">
-                 <input type="checkbox" id="no-guess-mode">
-                 <span class="slider"></span>
-             </label>
+             <div class="switch-container">
+                 <label for="no-guess-mode">No Guess Mode:</label>
+                 <label class="switch">
+                     <input type="checkbox" id="no-guess-mode">
+                     <span class="slider"></span>
+                 </label>
+             </div>
              <span id="generation-attempts"></span> <!-- To display attempts -->
         </div>
 
@@ -674,11 +761,16 @@
                 <option value="doubleTap">Double Tap</option>
             </select>
         </div>
-        <button onclick="applySettings()">Apply</button>
-        <button onclick="toggleSettings()">Close</button>
+        <!-- Buttons at the bottom -->
+        <div>
+             <button onclick="applySettings()">Apply & Close</button>
+             <button onclick="toggleSettings()">Close</button>
+        </div>
     </div>
 
-    <div id="overlay"></div>
+    <!-- Overlay for Settings Panel and Message Box -->
+    <div id="overlay" onclick="closePanels()"></div>
+
      <div id="message-box">
       <p id="message-text"></p>
       <button onclick="restartGame()">Restart</button>
@@ -693,21 +785,21 @@
          <div class="leaderboard-section">
              <h4>Beginner</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-beginner"></tbody>
              </table>
          </div>
          <div class="leaderboard-section">
              <h4>Intermediate</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-intermediate"></tbody>
              </table>
          </div>
          <div class="leaderboard-section">
              <h4>Expert</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-expert"></tbody>
              </table>
          </div>
@@ -716,21 +808,21 @@
          <div class="leaderboard-section">
              <h4>Beginner (No Guess)</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-beginner_noguess"></tbody>
              </table>
          </div>
           <div class="leaderboard-section">
              <h4>Intermediate (No Guess)</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-intermediate_noguess"></tbody>
              </table>
          </div>
           <div class="leaderboard-section">
              <h4>Expert (No Guess)</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-expert_noguess"></tbody>
              </table>
          </div>
@@ -743,7 +835,7 @@
             <thead>
                 <tr>
                     <th>Difficulty</th>
-                    <th>Best Time</th>
+                    <th>Best Time (s)</th> <!-- Added (s) -->
                 </tr>
             </thead>
             <tbody>
@@ -758,52 +850,89 @@
     </div>
 
     <script>
-     // Firebase configuration
+     /* =========  SANITISE UTILITY  ========= */
+    function sanitize (str) {
+      // Basic sanitization for leaderboard display
+      if (typeof str !== 'string') return ''; // Handle non-string input
+      return str.replace(/[&<>"'`=\\/]/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;', '=': '&#61;', '/': '&#x2F;'
+      })[s] || s); // Fallback for safety, although regex should cover all
+    }
+
+    /* =========  FIREBASE CONFIG  ========= */
     const firebaseConfig = {
-      apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM",
+      apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM", // Replace with your actual API key if necessary
       authDomain: "min3s-d13d8.firebaseapp.com",
       projectId: "min3s-d13d8",
-      storageBucket: "min3s-d13d8.appspot.com", // Corrected storageBucket
+      storageBucket: "min3s-d13d8.appspot.com",
       messagingSenderId: "561325595032",
       appId: "1:561325595032:web:19657730940427fb4073ed",
       measurementId: "G-N25M3ZT9NQ"
     };
-
-    // Initialize Firebase
     const firebaseApp = firebase.initializeApp(firebaseConfig);
     const db = firebaseApp.firestore();
 
+    // --- Global Variables ---
     let grid = [];
     let width = 9;
     let height = 9;
     let numMines = 10;
     let minesLeft = numMines;
     let timerInterval;
-    let time = 0;
+    let time = 0.000; // Initialize time as float
+    const timerIncrement = 0.010; // Increment amount in seconds (10ms)
+    const timerDelay = 10; // Interval delay in ms
     let gameStarted = false;
     let gameOver = false;
     let firstClick = true;
     let touchLongPressTimerId = null;
     let mouseLongPressTimerId = null;
-    let ignoreNextClick = false; // Flag to ignore click after long press
-    let longPressFlaggedThisTouch = false; // Flag set when touch long press timer completes
-    let longPressJustFinishedMouse = false; // Flag for mouse long press completion
-    let isLeftMouseDown = false; // Tracks if left mouse button is currently down
-    let pressedCellElement = null; // Tracks the element currently visually pressed by mouse hover/down
-    let initialMouseDownCell = null; // Tracks the element where the mouse down event originated
+    let ignoreNextClick = false;
+    let longPressFlaggedThisTouch = false;
+    let longPressJustFinishedMouse = false;
+    let isLeftMouseDown = false;
+    let pressedCellElement = null;
+    let initialMouseDownCell = null;
     let longPressDelay = 500;
     let flagMethod = "longPress";
     let chordMethod = "singleTap";
     let doubleTapChordTimer = null;
     let doubleTapFlagTimer = null;
-    let currentDifficulty = "beginner"; // Stores the base difficulty: beginner, intermediate, expert, custom
+    let currentDifficulty = "beginner";
     let playerName = "Player";
-    let noGuessMode = false; // Stores the No Guess Mode state
-    let generationAttempts = 0; // Added for No Guess Mode
+    let noGuessMode = false;
+    let generationAttempts = 0;
+
+    // --- DOM Elements Cache ---
+    const gridContainer = document.getElementById('grid-container');
+    const timerDisplay = document.querySelector('#timer > div:nth-child(2)');
+    const minesLeftDisplay = document.querySelector('#mines-left > div:nth-child(2)');
+    const settingsPanel = document.getElementById('settings-panel');
+    const overlay = document.getElementById('overlay');
+    const messageBox = document.getElementById('message-box');
+    const messageText = document.getElementById('message-text');
+    const difficultySelector = document.getElementById('difficulty-selector');
+    const customSettingsDiv = document.querySelector('.custom-settings');
+    const widthInput = document.getElementById('width');
+    const heightInput = document.getElementById('height');
+    const minesInput = document.getElementById('mines');
+    const playerNameInput = document.getElementById('player-name');
+    const lightModeCheckbox = document.getElementById('light-mode');
+    const noGuessCheckbox = document.getElementById('no-guess-mode');
+    const flagMethodSelect = document.getElementById('flag-method');
+    const longPressDelayInput = document.getElementById('long-press-delay');
+    const longPressDelayValueSpan = document.getElementById('long-press-delay-value');
+    const chordMethodSelect = document.getElementById('chord-method');
+    const attemptsSpan = document.getElementById('generation-attempts');
+    const logoElement = document.getElementById('logo');
+    const headerArea = document.getElementById('header-area');
+    const controlsDiv = document.getElementById('controls');
+    const leaderboardLoadingDiv = document.getElementById('leaderboard-loading');
+    const leaderboardErrorDiv = document.getElementById('leaderboard-error');
 
 
+    // --- Grid Creation ---
     function createGrid() {
-      const gridContainer = document.getElementById('grid-container');
       gridContainer.innerHTML = '';
       gridContainer.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
       grid = [];
@@ -815,14 +944,13 @@
           cell.classList.add('cell');
           cell.dataset.x = x;
           cell.dataset.y = y;
-          cell.addEventListener('click', handleClick); // Handles taps
-          cell.addEventListener('mousedown', handleCellMouseDown); // Handles mouse down (incl. long press start)
-          cell.addEventListener('contextmenu', handleRightClick); // Handles right click flag
-          cell.addEventListener('mouseover', handleCellMouseOver); // Handles mouse drag over cells
-          cell.addEventListener('mouseout', handleCellMouseOut); // Handles mouse leaving cell while down
+          cell.addEventListener('click', handleClick);
+          cell.addEventListener('mousedown', handleCellMouseDown);
+          cell.addEventListener('contextmenu', handleRightClick);
+          cell.addEventListener('mouseover', handleCellMouseOver);
+          cell.addEventListener('mouseout', handleCellMouseOut);
 
-          // Apply touch/long press listeners based on settings
-          updateFlagMethod(cell, x, y); // Attaches specific touch listeners
+          updateFlagMethodListeners(cell, x, y); // Attach specific touch/long press listeners
 
           gridContainer.appendChild(cell);
           grid[y][x] = {
@@ -835,81 +963,66 @@
         }
       }
       updateMinesLeftDisplay();
-      updateTimerDisplay();
-      // Prevent default context menu on the grid
+      updateTimerDisplay(); // Update timer display on creation
       gridContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); });
-      // Global mouseup listener for releasing clicks outside the grid
-      document.addEventListener('mouseup', handleDocumentMouseUp);
+      document.addEventListener('mouseup', handleDocumentMouseUp); // Global listener remains
     }
 
     // --- Event Handlers ---
 
     function handleRightClick(event) {
-        // This function's primary role now is just to prevent the default browser context menu
-        // when the contextmenu event fires on a cell.
-        // The actual flagging logic for right-click modes is handled in mousedown.
-        event.preventDefault();
+        event.preventDefault(); // Always prevent context menu on cells
     }
-
 
     function handleCellMouseDown(event) {
         if (gameOver) return;
-
         const targetCell = event.target.closest('.cell');
         if (!targetCell) return;
 
         // --- Right Click (Button 2) ---
         if (event.button === 2) {
-            event.preventDefault(); // Prevent context menu immediately on mousedown
-
-            // Handle flagging immediately on mousedown for both 'rightClick' and 'longPress' modes
-            if ((flagMethod === 'rightClick' || flagMethod === 'longPress') && !gameOver) {
-                 handleFlag(event); // Flag instantly
+            event.preventDefault(); // Prevent context menu immediately
+            if (flagMethod === 'rightClick' && !gameOver) { // Only flag if method is rightClick
+                 handleFlag(event);
             }
-            // No further action needed for right mousedown
             return;
         }
 
         // --- Left Click (Button 0) ---
         if (event.button === 0) {
-             initialMouseDownCell = targetCell; // Record where the press started
-             isLeftMouseDown = true; // Set the flag indicating left button is down
+             initialMouseDownCell = targetCell;
+             isLeftMouseDown = true;
 
-             // --- Long Press Handling (for mouse) ---
+             // Long Press Handling (Mouse)
              if (flagMethod === 'longPress') {
                  clearTimeout(mouseLongPressTimerId);
                  longPressJustFinishedMouse = false;
                  mouseLongPressTimerId = setTimeout(() => {
-                     // Long press completed: Flag the cell
-                     handleFlag(event);
+                     handleFlag(event); // Flag on long press
                      longPressJustFinishedMouse = true;
                      mouseLongPressTimerId = null;
-                     if (pressedCellElement) {
-                        pressedCellElement.classList.remove('pressed');
-                     }
+                     if (pressedCellElement) pressedCellElement.classList.remove('pressed');
                      pressedCellElement = null;
-                     // End the "drag" state after long press action
-                     isLeftMouseDown = false;
+                     isLeftMouseDown = false; // End "drag" after long press action
                  }, longPressDelay);
              }
 
-             // --- Standard Left Mouse Down Visual ---
+             // Standard Left Mouse Down Visual
              const cellData = grid[parseInt(targetCell.dataset.y)][parseInt(targetCell.dataset.x)];
              if (cellData && !cellData.isRevealed && !cellData.isFlagged) {
                 targetCell.classList.add('pressed');
-                pressedCellElement = targetCell; // Track the visually pressed cell
+                pressedCellElement = targetCell;
              } else {
-                pressedCellElement = null; // Don't track if revealed/flagged
+                pressedCellElement = null;
              }
         }
     }
 
     function handleCellMouseOver(event) {
         if (!isLeftMouseDown || gameOver) return;
-
         const targetCell = event.target.closest('.cell');
-        if (!targetCell) { // If mouse moved off the grid or between cells
-             if(pressedCellElement) { // Remove press from the last cell hovered
+        if (!targetCell) { // Moved off grid
+             if(pressedCellElement) {
                   pressedCellElement.classList.remove('pressed');
                   pressedCellElement = null;
              }
@@ -919,130 +1032,143 @@
         const cellData = grid[parseInt(targetCell.dataset.y)][parseInt(targetCell.dataset.x)];
         if (!cellData) return;
 
-        // If hovering over a different cell than the one currently pressed
         if (targetCell !== pressedCellElement) {
-            if (pressedCellElement) { // Remove pressed state from the old cell
+            if (pressedCellElement) {
                 pressedCellElement.classList.remove('pressed');
             }
-
-            // Apply pressed state to the new cell if it's valid
             if (!cellData.isRevealed && !cellData.isFlagged) {
                  targetCell.classList.add('pressed');
-                 pressedCellElement = targetCell; // Update the visually pressed cell
+                 pressedCellElement = targetCell;
             } else {
-                 pressedCellElement = null; // Don't visually press revealed/flagged cells
+                 pressedCellElement = null;
             }
         }
     }
 
     function handleCellMouseOut(event) {
-        // Only apply if left mouse button is currently held down
         if (!isLeftMouseDown || gameOver) return;
-
-        const relatedTarget = event.relatedTarget; // Where the mouse is going
-        // If mouse is leaving the grid container entirely, remove press state
-        if (!relatedTarget || !relatedTarget.closest('#grid-container')) {
+        const relatedTarget = event.relatedTarget;
+        if (!relatedTarget || !relatedTarget.closest('#grid-container')) { // Leaving grid container
              if(pressedCellElement) {
                  pressedCellElement.classList.remove('pressed');
                  pressedCellElement = null;
              }
         }
-        // The logic in handleCellMouseOver handles transferring the press state
-        // when moving between cells, so this function primarily handles leaving the grid.
     }
 
     function handleDocumentMouseUp(event) {
-         // --- Left Click Release (Button 0) ---
-        if (event.button === 0 && isLeftMouseDown) { // Check if left button WAS down
-             isLeftMouseDown = false; // Mouse button is now up
+        if (event.button === 0 && isLeftMouseDown) { // Left button release
+             isLeftMouseDown = false;
              const mouseUpTargetElement = document.elementFromPoint(event.clientX, event.clientY);
              const mouseUpCellElement = mouseUpTargetElement ? mouseUpTargetElement.closest('.cell') : null;
 
-             // Clear any running MOUSE long press timer
-             clearTimeout(mouseLongPressTimerId);
+             clearTimeout(mouseLongPressTimerId); // Clear MOUSE long press timer
              mouseLongPressTimerId = null;
 
-             // --- Check if a MOUSE long press just finished ---
-             if (longPressJustFinishedMouse) {
-                 longPressJustFinishedMouse = false; // Reset mouse flag
-                 initialMouseDownCell = null; // Reset initial cell
-                 // Ensure pressedCellElement is cleared after long press action
-                 if (pressedCellElement) {
+             if (longPressJustFinishedMouse) { // Was it a long press flag?
+                 longPressJustFinishedMouse = false;
+                 initialMouseDownCell = null;
+                 if (pressedCellElement) { // Should already be null, but belt & braces
                      pressedCellElement.classList.remove('pressed');
                      pressedCellElement = null;
                  }
-                 return; // Action was flag, do nothing else
+                 return; // Do nothing else
              }
 
-             // Remove visual pressed state from the cell that was last visually pressed
+             // Remove final pressed state
              if (pressedCellElement) {
                  pressedCellElement.classList.remove('pressed');
              }
-              // Reset the visually pressed element tracker *after* removing the class
-             pressedCellElement = null;
+             pressedCellElement = null; // Reset tracked pressed element
 
              if (gameOver) {
                  initialMouseDownCell = null;
                  return;
              }
 
-             // --- Process the cell where mouse was released ---
-             if (mouseUpCellElement) { // Ensure release happened over a cell
+             // Process release action if over a valid cell
+             if (mouseUpCellElement) {
                  const x = parseInt(mouseUpCellElement.dataset.x);
                  const y = parseInt(mouseUpCellElement.dataset.y);
                  const cellData = grid[y]?.[x];
 
-                 if (cellData) { // Cell data exists
+                 if (cellData) {
                       if (firstClick) {
-                          // Trigger first click based on the cell released over
                           handleFirstClick(x, y);
                       } else if (cellData.isRevealed) {
-                           // CHORDING: Allow chording if released over ANY revealed number cell
-                           chord(x, y);
+                          // CHORDING: Trigger on the cell released over
+                          chord(x, y);
                       } else if (!cellData.isFlagged) {
-                           // REVEALING: Reveal the cell under the cursor on release
-                           revealCell(x, y);
+                          // REVEALING: Trigger on the cell released over
+                          revealCell(x, y);
                       }
-                      // If cell is flagged, do nothing on left mouse release.
+                      // If flagged, left release does nothing
                   }
              }
-             // If mouse released outside grid or not over a cell, do nothing.
+             initialMouseDownCell = null; // Reset initial cell tracking
 
-             initialMouseDownCell = null; // Reset initial cell tracking after processing
-             // pressedCellElement is already null
-
-        } else if (event.button === 2) {
-             // Handle right mouse button up - usually does nothing, but reset state just in case.
-            isLeftMouseDown = false; // Reset left mouse state (though it should be false anyway)
+        } else { // Other mouse button up or not dragging
+             isLeftMouseDown = false;
              clearTimeout(mouseLongPressTimerId);
              mouseLongPressTimerId = null;
              if (pressedCellElement) {
                   pressedCellElement.classList.remove('pressed');
                   pressedCellElement = null;
              }
-             initialMouseDownCell = null;
-             longPressJustFinishedMouse = false;
-        } else {
-             // Handle other mouseup scenarios or mouseup when not dragging
-             isLeftMouseDown = false; // Ensure state is reset
-             if (pressedCellElement) {
-                  pressedCellElement.classList.remove('pressed');
-                  pressedCellElement = null;
-             }
-             clearTimeout(mouseLongPressTimerId);
-             mouseLongPressTimerId = null;
              initialMouseDownCell = null;
              longPressJustFinishedMouse = false;
         }
     }
 
+    // Simplified handleClick for Taps (reveal or chord)
+     function handleClick(event) {
+         if (ignoreNextClick) {
+             ignoreNextClick = false; return;
+         }
+         if (gameOver) return;
+         // Let mousedown/mouseup handle mouse clicks
+         if (event.pointerType === 'mouse' && event.button === 0) return;
+
+         const targetCell = event.target.closest('.cell');
+         if (!targetCell) return;
+         const x = parseInt(targetCell.dataset.x);
+         const y = parseInt(targetCell.dataset.y);
+         const cell = grid[y]?.[x];
+         if (!cell) return;
+
+         if (firstClick) {
+              handleFirstClick(x, y); return;
+         }
+
+         if (cell.isRevealed) {
+             // Chording: Handle single tap chord or first tap of double tap chord
+             if (chordMethod === 'doubleTap') {
+                 handleDoubleTapChord(event); // Check for double tap chord
+             } else {
+                 chord(x, y); // Chord on single tap
+             }
+         } else if (!cell.isFlagged) {
+              // Revealing: Handle first tap of double tap flag, or normal reveal
+              if (flagMethod === 'doubleTap') {
+                   // If doubleTapFlagTimer is running, this click does nothing (handled by double tap)
+                   // If it's null, this click might start the timer OR reveal if no second tap comes
+                   if (doubleTapFlagTimer === null) {
+                        // We don't reveal immediately, wait to see if it's a double tap flag
+                        // Instead, let the doubleTapFlag handler manage it or let the timer expire.
+                        // If double tap isn't used for flagging, we just reveal.
+                         revealCell(x, y);
+                    }
+               } else {
+                  revealCell(x, y); // Reveal normally if not double tap flag mode
+              }
+         }
+         // If flagged, tap does nothing unless it's part of a double tap sequence? (Current logic: does nothing)
+     }
 
     // --- Game Logic ---
 
     function handleFirstClick(x, y) {
          if (!firstClick || gameOver) return;
-
-         const attemptsSpan = document.getElementById('generation-attempts');
          attemptsSpan.textContent = ''; // Clear previous attempts count
 
          if (noGuessMode) {
@@ -1053,40 +1179,42 @@
              setTimeout(() => { // Use setTimeout to avoid freezing UI
                  while (!solvable) {
                      generationAttempts++;
+                     // Reset grid mines/adjacencies
                      for (let r = 0; r < height; r++) {
                          for (let c = 0; c < width; c++) {
                             if(grid[r]?.[c]){
                                  grid[r][c].isMine = false;
                                  grid[r][c].adjacentMines = 0;
+                                 // Don't reset revealed/flagged state here
                             }
                          }
                      }
-                     placeMines(x, y);
+                     placeMines(x, y); // Place mines avoiding the start area
                      if (isSolvableWithoutGuessing(x, y)) {
                          solvable = true;
                          console.log(`No Guess Mode: Solvable grid found after ${generationAttempts} attempts.`);
                          attemptsSpan.textContent = `(${generationAttempts} attempts)`;
                          startTimer();
                          firstClick = false;
-                         revealCell(x, y);
+                         revealCell(x, y); // Reveal the first clicked cell
                      } else {
                         if (generationAttempts % 100 === 0) {
                             console.log(`No Guess Mode: Attempt ${generationAttempts}...`);
                             attemptsSpan.textContent = `Generating... (${generationAttempts})`;
                         }
-                        if (generationAttempts > 5000) {
+                        if (generationAttempts > 50000) { // Timeout
                              console.error(`No Guess Mode: Generation timed out after ${generationAttempts} attempts.`);
                              alert(`Failed to generate a solvable grid in No Guess Mode after ${generationAttempts} tries. Try reducing density or grid size, or disable No Guess Mode.`);
                              attemptsSpan.textContent = '(Generation Failed)';
-                             restartGame();
-                             return;
+                             restartGame(); // Go back to initial state
+                             return; // Stop generation attempt
                         }
                      }
                  }
-             }, 0);
+             }, 0); // End setTimeout
 
          } else {
-             // Normal mode
+             // Normal mode: place mines and reveal
              placeMines(x, y);
              startTimer();
              firstClick = false;
@@ -1094,23 +1222,31 @@
          }
      }
 
-    function updateFlagMethod(cell, x, y) {
-        if(!cell){
-            for(let r = 0; r < height; r++){
-                for(let c = 0; c < width; c++){
-                    if (grid[r]?.[c]?.element) {
-                       updateFlagMethod(grid[r][c].element, c, r);
-                    }
+     function updateFlagMethodListeners(cell, x, y) {
+        if(!cell) return; // Safety check
+
+        // Remove existing listeners first to avoid duplicates
+        removeLongPressListener(cell);
+        cell.removeEventListener('touchstart', handleDoubleTapFlag);
+
+        // Add listeners based on the current setting
+        if (flagMethod === 'longPress') {
+            addLongPressListener(cell, handleFlag); // Add touch long press for flagging
+            // Right-click flagging is handled in handleCellMouseDown
+        } else if (flagMethod === 'doubleTap') {
+            cell.addEventListener('touchstart', handleDoubleTapFlag); // Add touch double tap for flagging
+        }
+        // 'rightClick' flagging is handled purely in handleCellMouseDown
+    }
+
+    // Call this when flagMethod setting changes
+    function updateAllFlagMethodListeners() {
+        for(let r = 0; r < height; r++){
+            for(let c = 0; c < width; c++){
+                if (grid[r]?.[c]?.element) {
+                   updateFlagMethodListeners(grid[r][c].element, c, r);
                 }
             }
-            return;
-        }
-        cell.removeEventListener('touchstart', handleDoubleTapFlag);
-        removeLongPressListener(cell);
-        if (flagMethod === 'longPress') {
-            addLongPressListener(cell, handleFlag);
-        } else if (flagMethod === 'doubleTap') {
-            cell.addEventListener('touchstart', handleDoubleTapFlag);
         }
     }
 
@@ -1118,15 +1254,34 @@
         if(gameOver || flagMethod !== 'doubleTap') return;
         const targetCell = event.target.closest('.cell');
         if (!targetCell) return;
-        if(doubleTapFlagTimer === null){
-            doubleTapFlagTimer = setTimeout(() => { doubleTapFlagTimer = null; }, 300);
-        } else {
-            clearTimeout(doubleTapFlagTimer);
+
+        if(doubleTapFlagTimer === null){ // First tap
+            // Prevent default action slightly delayed to allow scrolling if not double-tapped
+            const timerId = setTimeout(() => event.preventDefault(), 150);
+            doubleTapFlagTimer = setTimeout(() => {
+                 doubleTapFlagTimer = null; // Timer expired, not a double tap
+                 clearTimeout(timerId); // Clear the preventDefault timer
+                 // If it wasn't a double tap, treat the first tap as a reveal
+                 handleClick(event); // Re-process the initial tap as a single tap/click
+            }, 300); // 300ms window for double tap
+            // Add visual feedback for first tap
+             if (!targetCell.classList.contains('revealed') && !targetCell.classList.contains('flagged')) {
+                 targetCell.classList.add('pressed');
+                 // Remove pressed state shortly after if no second tap comes
+                 setTimeout(() => {
+                     if (doubleTapFlagTimer !== null) { // Only remove if timer still active (no second tap yet)
+                        targetCell.classList.remove('pressed');
+                     }
+                 }, 150);
+             }
+
+        } else { // Second tap
+            clearTimeout(doubleTapFlagTimer); // Clear the timer
             doubleTapFlagTimer = null;
-            handleFlag(event);
-            ignoreNextClick = true;
-            if(pressedCellElement) { pressedCellElement.classList.remove('pressed'); pressedCellElement = null; }
-            isLeftMouseDown = false;
+            targetCell.classList.remove('pressed'); // Remove press state from first tap
+            handleFlag(event); // Execute the flag action
+            ignoreNextClick = true; // Prevent the click event after double tap
+            event.preventDefault(); // Prevent zoom/other default actions
         }
     }
     function handleDoubleTapChord(event){
@@ -1135,41 +1290,72 @@
         if (!targetCell) return;
         const x = parseInt(targetCell.dataset.x);
         const y = parseInt(targetCell.dataset.y);
-        if (doubleTapChordTimer === null) {
-            doubleTapChordTimer = setTimeout(() => { doubleTapChordTimer = null; }, 300);
-        } else {
+        const cell = grid[y]?.[x];
+
+        if(!cell || !cell.isRevealed) return; // Can only chord revealed cells
+
+        if (doubleTapChordTimer === null) { // First tap
+             const timerId = setTimeout(() => event.preventDefault(), 150);
+            doubleTapChordTimer = setTimeout(() => {
+                doubleTapChordTimer = null; // Timer expired
+                clearTimeout(timerId);
+                 // If timer expires, the first tap does nothing in double-tap chord mode
+                 targetCell.classList.remove('pressed'); // Remove visual feedback
+            }, 300);
+             // Add visual feedback
+             targetCell.classList.add('pressed');
+
+        } else { // Second tap
             clearTimeout(doubleTapChordTimer);
             doubleTapChordTimer = null;
-            chord(x, y);
-            ignoreNextClick = true;
+            targetCell.classList.remove('pressed');
+            chord(x, y); // Execute chord action
+            ignoreNextClick = true; // Prevent click event
+            event.preventDefault();
         }
     }
 
     function placeMines(safeX, safeY) {
         let minesPlaced = 0;
         let availableSquares = [];
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                 let isSafe = false;
-                 for(let dy = -1; dy <= 1; dy++){
-                     for(let dx = -1; dx <= 1; dx++){
-                         if(x === safeX + dx && y === safeY + dy){ isSafe = true; break; }
-                     }
-                     if(isSafe) break;
-                 }
-                 if (!isSafe) availableSquares.push({x, y});
+        // Define the 3x3 safe zone around the first click
+        const safeZone = new Set();
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                safeZone.add(`${safeX + dx},${safeY + dy}`);
             }
         }
+
+        // Collect all squares NOT in the safe zone
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                 if (!safeZone.has(`${x},${y}`)) {
+                     availableSquares.push({x, y});
+                 }
+            }
+        }
+
+        // Shuffle the available squares
         for (let i = availableSquares.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [availableSquares[i], availableSquares[j]] = [availableSquares[j], availableSquares[i]];
         }
+
+        // Place mines in the shuffled available squares
         const minesToPlace = Math.min(numMines, availableSquares.length);
         for (let i = 0; i < minesToPlace; i++) {
             const { x, y } = availableSquares[i];
-             if(grid[y]?.[x]) { grid[y][x].isMine = true; minesPlaced++; }
+             if(grid[y]?.[x]) {
+                 grid[y][x].isMine = true;
+                 minesPlaced++;
+             }
         }
-         if (minesPlaced < numMines) console.warn(`Could only place ${minesPlaced}/${numMines} mines.`);
+
+         if (minesPlaced < numMines) {
+            console.warn(`Could only place ${minesPlaced}/${numMines} mines due to safe zone size.`);
+            // Optionally: Update numMines to reflect actual placed mines? Or alert user?
+            // For now, just proceed with the placed mines. The game logic uses numMines setting.
+         }
         calculateAdjacentMines();
     }
 
@@ -1189,9 +1375,9 @@
                         }
                     }
                     cell.adjacentMines = count;
-                    if(cell.element) cell.element.dataset.adjacent = count;
+                    if(cell.element) cell.element.dataset.adjacent = count; // Update data attribute for CSS
                 } else if (cell) {
-                     cell.adjacentMines = -1;
+                     cell.adjacentMines = -1; // Indicate mine or error
                      if(cell.element) delete cell.element.dataset.adjacent;
                 }
             }
@@ -1204,30 +1390,35 @@
         if (!cell || cell.isRevealed || cell.isFlagged) return;
 
         cell.isRevealed = true;
-        cell.element.classList.remove('pressed', 'flagged');
+        cell.element.classList.remove('pressed', 'flagged'); // Remove pressed/flagged states
         cell.element.classList.add('revealed');
-        cell.element.textContent = '';
+        cell.element.textContent = ''; // Clear flag text if any
 
         if (cell.isMine) {
-            cell.element.classList.add('mine');
+            // Game Over - Hit a mine
+            cell.element.classList.add('mine'); // Highlight the clicked mine
             cell.element.textContent = "💣";
             revealAllMines(x, y);
             showMessage("Game Over!");
             stopTimer();
         } else {
-             cell.element.dataset.adjacent = cell.adjacentMines;
+            // Revealed a safe cell
+             cell.element.dataset.adjacent = cell.adjacentMines; // Ensure data attr is set
             if (cell.adjacentMines > 0) {
+                // Display the number
                 cell.element.textContent = cell.adjacentMines;
             } else {
-                 cell.element.textContent = '';
-                // Non-recursive flood fill using a queue
+                // Flood fill for 0-adjacent cells (using iterative queue)
+                 cell.element.textContent = ''; // Ensure empty for 0
                 const revealQueue = [];
+                 // Add valid neighbors to the initial queue
                  for (let dy = -1; dy <= 1; dy++) {
                      for (let dx = -1; dx <= 1; dx++) {
                           if (dx === 0 && dy === 0) continue;
                           const nextX = x + dx; const nextY = y + dy;
                           if (nextX >= 0 && nextX < width && nextY >= 0 && nextY < height) {
                               const neighborCell = grid[nextY]?.[nextX];
+                              // Add neighbor if it exists, isn't revealed, and isn't flagged
                               if(neighborCell && !neighborCell.isRevealed && !neighborCell.isFlagged){
                                  revealQueue.push({nx: nextX, ny: nextY});
                               }
@@ -1235,240 +1426,260 @@
                      }
                  }
 
-                let processed = new Set([`${x},${y}`]);
+                let processed = new Set([`${x},${y}`]); // Track processed cells to avoid cycles/redundancy
+
                 while(revealQueue.length > 0) {
                     const current = revealQueue.shift();
                     const currentX = current.nx; const currentY = current.ny;
                     const currentKey = `${currentX},${currentY}`;
+
+                    // Skip if already processed or out of bounds
                     if (processed.has(currentKey) || currentX < 0 || currentX >= width || currentY < 0 || currentY >= height) continue;
 
                     const currentCell = grid[currentY]?.[currentX];
+
+                    // Skip if cell doesn't exist, is already revealed, or is flagged
                     if (!currentCell || currentCell.isRevealed || currentCell.isFlagged) {
-                         processed.add(currentKey); continue;
+                         processed.add(currentKey); // Mark as processed even if skipped
+                         continue;
                     }
 
+                    // Process this cell
                     processed.add(currentKey);
                     currentCell.isRevealed = true;
                     currentCell.element.classList.add('revealed');
-                    currentCell.element.classList.remove('pressed', 'flagged');
-                    currentCell.element.textContent = '';
-                    currentCell.element.dataset.adjacent = currentCell.adjacentMines;
+                    currentCell.element.classList.remove('pressed', 'flagged'); // Ensure states removed
+                    currentCell.element.textContent = ''; // Clear flag text
+                    currentCell.element.dataset.adjacent = currentCell.adjacentMines; // Set data attr
 
                     if (currentCell.adjacentMines > 0) {
+                        // Revealed a numbered cell during flood fill
                         currentCell.element.textContent = currentCell.adjacentMines;
                     } else {
+                        // Revealed a 0 cell, add its neighbors to the queue
                         currentCell.element.textContent = '';
                         for (let dy = -1; dy <= 1; dy++) {
                             for (let dx = -1; dx <= 1; dx++) {
                                 if (dx === 0 && dy === 0) continue;
                                 const nextX = currentX + dx; const nextY = currentY + dy;
                                 const nextKey = `${nextX},${nextY}`;
+                                // Add neighbor if within bounds and not already processed
                                 if (nextX >= 0 && nextX < width && nextY >= 0 && nextY < height && !processed.has(nextKey)) {
                                     const neighborCell = grid[nextY]?.[nextX];
+                                    // Only queue neighbors that are valid, not revealed, and not flagged
                                     if(neighborCell && !neighborCell.isRevealed && !neighborCell.isFlagged){
                                         revealQueue.push({nx: nextX, ny: nextY});
                                     } else {
+                                         // Mark neighbors that won't be queued as processed too
                                          processed.add(nextKey);
                                     }
                                 }
                             }
                         }
                     }
-                }
-            }
-        }
+                } // End while revealQueue
+            } // End else (adjacentMines === 0)
+        } // End else (not a mine)
+
+       // Check for win condition after revealing
        if (!gameOver) checkWin();
     }
 
-    function handleClick(event) {
-        if (ignoreNextClick) {
-            ignoreNextClick = false; return;
-        }
-        if (gameOver) return;
-        if (event.pointerType === 'mouse' && event.button === 0) return; // Mouse handled separately
-
-        const targetCell = event.target.closest('.cell');
-        if (!targetCell) return;
-        const x = parseInt(targetCell.dataset.x);
-        const y = parseInt(targetCell.dataset.y);
-
-        if (firstClick) {
-             handleFirstClick(x, y); return;
-        }
-
-        const cell = grid[y]?.[x];
-        if (!cell) return;
-
-        if (cell.isRevealed) {
-            if (chordMethod === 'doubleTap') handleDoubleTapChord(event);
-            else chord(x, y);
-        } else if (!cell.isFlagged) {
-             if (flagMethod === 'doubleTap') {
-                  if (doubleTapFlagTimer === null) revealCell(x, y);
-             } else {
-                 revealCell(x, y);
-             }
-        }
-    }
-
     function handleFlag(event) {
+      // This function is called by:
+      // - Right Mouse Down (if flagMethod='rightClick')
+      // - Long Press (Mouse or Touch) (if flagMethod='longPress')
+      // - Double Tap (Touch) (if flagMethod='doubleTap')
       if (gameOver) return;
       const targetCell = event.target.closest('.cell');
       if (!targetCell) return;
       const x = parseInt(targetCell.dataset.x);
       const y = parseInt(targetCell.dataset.y);
       const cell = grid[y]?.[x];
-      if (!cell || cell.isRevealed) return;
+      if (!cell || cell.isRevealed) return; // Cannot flag revealed cells
 
       if (cell.isFlagged) {
+          // Unflag
           cell.isFlagged = false;
           cell.element.classList.remove('flagged');
           cell.element.textContent = '';
           minesLeft++;
       } else if (minesLeft > 0) {
+          // Flag
           cell.isFlagged = true;
           cell.element.classList.add('flagged');
-          cell.element.textContent = '🚩';
+          cell.element.textContent = '🚩'; // Use emoji for flag
           minesLeft--;
+      } else {
+          // No flags left - maybe provide feedback? For now, do nothing.
+          console.log("No flags left!");
       }
+
       updateMinesLeftDisplay();
-      checkWin(); // Check win only needed if maybe all mines flagged now
+      // Check win only if all mines might now be flagged correctly
+      // (or if an incorrect flag was removed, potentially revealing the last cell needed)
+      // Calling it every time is safe, though potentially slightly less efficient.
+      checkWin();
     }
 
      function chord(x, y){
         if (isNaN(x) || isNaN(y) || x < 0 || x >= width || y < 0 || y >= height || gameOver) return;
         const cell = grid[y]?.[x];
+        // Can only chord revealed cells with adjacent mines > 0
         if(!cell || !cell.isRevealed || cell.adjacentMines <= 0) return;
 
         let flaggedNeighbors = 0;
-        let unknownAndUnflaggedNeighbors = [];
+        let unknownAndUnflaggedNeighbors = []; // Stores {x, y} of neighbors to potentially reveal
+
+         // Check neighbors
          for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
-                if (dx === 0 && dy === 0) continue;
+                if (dx === 0 && dy === 0) continue; // Skip self
                 const newX = x + dx; const newY = y + dy;
                  if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
                       const neighbor = grid[newY]?.[newX];
                       if (neighbor) {
-                          if (neighbor.isFlagged) flaggedNeighbors++;
-                          else if (!neighbor.isRevealed) unknownAndUnflaggedNeighbors.push({x: newX, y: newY});
+                          if (neighbor.isFlagged) {
+                              flaggedNeighbors++;
+                          } else if (!neighbor.isRevealed) {
+                              // It's hidden and not flagged
+                              unknownAndUnflaggedNeighbors.push({x: newX, y: newY});
+                          }
                       }
                  }
             }
           }
+
+         // If the number of flagged neighbors matches the cell's number
          if(flaggedNeighbors === cell.adjacentMines){
-             unknownAndUnflaggedNeighbors.forEach(pos => revealCell(pos.x, pos.y));
+             // Reveal all adjacent hidden, unflagged cells
+             unknownAndUnflaggedNeighbors.forEach(pos => {
+                // Use revealCell - it handles mine checks, flood fill, and win checks
+                revealCell(pos.x, pos.y);
+             });
          }
-         // revealCell calls checkWin if game state changes
+         // If flags don't match number, chording does nothing.
+         // revealCell internally calls checkWin if the game state changes and it's not game over.
      }
 
      function revealAllMines(clickedX, clickedY) {
-        if (gameOver) return;
-        gameOver = true;
+        if (gameOver) return; // Should already be set, but double check
+        gameOver = true; // Ensure game over state is set
+        stopTimer(); // Stop the timer immediately
+
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                  const cell = grid[y]?.[x];
                  if (cell?.element) {
-                     cell.element.classList.remove('pressed');
+                     cell.element.classList.remove('pressed'); // Remove any lingering press state
+
                      if (cell.isMine) {
-                         if (!cell.isFlagged) { // Only reveal unflagged mines
+                         if (!cell.isFlagged) { // Show unflagged mines
                              cell.element.classList.add('mine-revealed');
                              cell.element.textContent = "💣";
+                             // Special style for the mine that was actually clicked
                              if (x === clickedX && y === clickedY) {
-                                 cell.element.classList.add('mine'); // Special style for the hit mine
+                                 cell.element.classList.remove('mine-revealed'); // Remove generic reveal style
+                                 cell.element.classList.add('mine'); // Add specific hit mine style
                              }
                          }
+                         // Correctly flagged mines remain flagged (no change needed)
                      } else if (cell.isFlagged) { // Incorrectly flagged non-mine
                          cell.element.classList.remove('flagged');
                          cell.element.classList.add('incorrect-flag');
-                         cell.element.textContent = 'X';
+                         cell.element.textContent = 'X'; // Show 'X' for incorrect flag
                      }
                  }
             }
         }
+        // No need to call checkWin here, game is lost.
     }
 
     function checkWin() {
-      if (gameOver || firstClick) return; // Already over or not started
+      if (gameOver || firstClick) return; // Don't check if game is over or hasn't started
 
-      let revealedCount = 0;
-      let mineCount = 0; // Count actual mines on the grid for this check
-      let unrevealedNonMines = 0; // Count hidden safe squares
+      let revealedNonMineCount = 0;
+      let totalNonMineCells = 0;
 
       for (let y = 0; y < height; y++) {
           for (let x = 0; x < width; x++) {
               const cell = grid[y]?.[x];
-              if (!cell) continue; // Skip if cell data doesn't exist
+              if (!cell) continue;
 
-              if (cell.isMine) {
-                  mineCount++;
-              } else { // If it's not a mine
+              if (!cell.isMine) {
+                  totalNonMineCells++;
                   if (cell.isRevealed) {
-                      revealedCount++;
-                  } else { // Count hidden (unrevealed & potentially flagged) non-mines
-                       unrevealedNonMines++;
+                      revealedNonMineCount++;
                   }
               }
           }
       }
 
-       // Use the *expected* number of mines for win condition checks
-       const effectiveMineCount = numMines; // Use the game setting
-       if (mineCount !== effectiveMineCount && mineCount > 0) { // Only warn if mines have been placed and differ
-           console.warn(`Internal mine count (${mineCount}) differs from setting (${effectiveMineCount}). Using setting for win check.`);
-       }
-
-      // Standard Win Condition: All non-mine squares are revealed.
-      const totalSquares = width * height;
-      const expectedNonMineSquares = totalSquares - effectiveMineCount;
-
-      // Check if the number of revealed squares equals the total number of non-mine squares.
-      // Also ensure there are no unrevealed non-mines left.
-      if (revealedCount === expectedNonMineSquares && unrevealedNonMines === 0) {
-            // If this condition is met, all safe squares are open. Trigger win.
-            winGame(true); // Auto-flag remaining mines (if any) and declare win.
+      // Win Condition: All non-mine cells are revealed
+      if (revealedNonMineCount === totalNonMineCells && totalNonMineCells > 0) {
+            // Check if the number of actual non-mines matches expected based on settings
+            const expectedNonMines = (width * height) - numMines;
+            if(totalNonMineCells !== expectedNonMines) {
+                 console.warn(`Win check discrepancy: Actual non-mines (${totalNonMineCells}) vs Expected (${expectedNonMines}). Win declared based on actual.`);
+            }
+            winGame(true); // Win and auto-flag remaining mines
       }
-      // No other win conditions. Flagging all mines does not trigger a win.
+      // Note: Flagging all mines correctly does NOT automatically win. You must reveal all safe squares.
     }
 
-    function winGame(autoFlag = false) {
-        if (gameOver) return;
+    function winGame(autoFlag = true) {
+        if (gameOver) return; // Prevent multiple win triggers
         gameOver = true;
         stopTimer();
         console.log("Win condition met!");
-        let flagsToPlace = 0;
+
+        let flagsPlaced = 0;
         if (autoFlag) {
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
                     const cell = grid[y]?.[x];
-                    if (cell?.isMine && !cell.isFlagged && !cell.isRevealed) {
+                    // Auto-flag mines that are not already revealed or flagged
+                    if (cell?.isMine && !cell.isRevealed && !cell.isFlagged) {
                         cell.isFlagged = true;
                         if(cell.element) {
                             cell.element.classList.add('flagged');
                             cell.element.textContent = '🚩';
                         }
-                        flagsToPlace++;
+                        flagsPlaced++;
                     }
                 }
             }
-             minesLeft = 0;
+             // Update mines left display to 0 (or potentially negative if over-flagged before win)
+             minesLeft -= flagsPlaced;
+             if(minesLeft < 0) minesLeft = 0; // Don't show negative flags remaining
              updateMinesLeftDisplay();
         }
-        flagIncorrectlyPlaced();
-        updateLeaderboard();
-        showMessage("You Win! Time: " + time + " seconds");
+
+        flagIncorrectlyPlaced(); // Mark any incorrect flags visually after win confirmed
+        updateLeaderboard(); // Submit score if applicable
+        // Format time in win message
+        showMessage("You Win! Time: " + time.toFixed(3) + " seconds");
+
+        // Clear any lingering interaction states
         if (pressedCellElement) { pressedCellElement.classList.remove('pressed'); pressedCellElement = null; }
         isLeftMouseDown = false;
+        clearTimeout(touchLongPressTimerId); touchLongPressTimerId = null;
+        clearTimeout(mouseLongPressTimerId); mouseLongPressTimerId = null;
+        clearTimeout(doubleTapFlagTimer); doubleTapFlagTimer = null;
+        clearTimeout(doubleTapChordTimer); doubleTapChordTimer = null;
     }
 
     function flagIncorrectlyPlaced(){
+        // This is usually called on win/loss to visually mark flags placed on non-mine cells.
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                  const cell = grid[y]?.[x];
+                 // If a cell is flagged but is NOT a mine
                  if (cell?.isFlagged && !cell.isMine) {
                     if(cell.element){
-                        cell.element.classList.remove('flagged');
-                        cell.element.classList.add('incorrect-flag');
-                        cell.element.textContent = 'X';
+                        cell.element.classList.remove('flagged'); // Remove flag style
+                        cell.element.classList.add('incorrect-flag'); // Add incorrect style
+                        cell.element.textContent = 'X'; // Show 'X'
                     }
                  }
             }
@@ -1477,186 +1688,341 @@
 
     function startTimer() {
         if (!gameStarted) {
-            gameStarted = true; time = 0; updateTimerDisplay();
-            clearInterval(timerInterval);
+            gameStarted = true;
+            time = 0.000; // Reset time to float 0.000
+            updateTimerDisplay();
+            clearInterval(timerInterval); // Clear any existing timer
             timerInterval = setInterval(() => {
-                if (!gameOver) { time++; updateTimerDisplay(); }
-                else { stopTimer(); }
-            }, 1000);
+                if (!gameOver) { // Only increment if game is running
+                    time += timerIncrement; // Increment by fractional amount
+                    updateTimerDisplay();
+                } else {
+                    stopTimer(); // Stop if game becomes over
+                }
+            }, timerDelay); // Use faster delay
         }
     }
-    function stopTimer() { clearInterval(timerInterval); }
+    function stopTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null; // Clear the interval ID
+        updateTimerDisplay(); // Update display one last time to show final value accurately
+    }
 
     // --- Touch / Long Press Handling ---
    function addLongPressListener(element, callback) {
        let elementTouchTimerId = null; longPressFlaggedThisTouch = false;
        let startX, startY;
+
        const handleTouchStart = (e) => {
+           // Only activate on single touch and if no timer is already running
            if (e.touches.length === 1 && elementTouchTimerId === null) {
-               longPressFlaggedThisTouch = false; ignoreNextClick = false;
-               startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+               longPressFlaggedThisTouch = false; // Reset flag status for this touch
+               ignoreNextClick = false; // Reset ignore flag
+               startX = e.touches[0].clientX; startY = e.touches[0].clientY; // Record start position
+
+               // Start the timer for long press duration
                elementTouchTimerId = setTimeout(() => {
-                   longPressFlaggedThisTouch = true; callback(e); ignoreNextClick = true;
-                   elementTouchTimerId = null; e.preventDefault();
+                   // Long press detected!
+                   longPressFlaggedThisTouch = true; // Mark that a long press happened
+                   callback(e); // Execute the flag action
+                   ignoreNextClick = true; // Ignore the subsequent 'click' event
+                   elementTouchTimerId = null; // Timer finished
+                   e.preventDefault(); // Prevent default actions like text selection/context menu
+
+                   // Remove visual press state if still present
                    const tc = e.target.closest('.cell'); if (tc) tc.classList.remove('pressed');
-               }, longPressDelay);
+
+               }, longPressDelay); // Use the configured delay
+
+                // Add visual press state immediately on touch start
                 const tc = e.target.closest('.cell');
                 if (tc && !tc.classList.contains('revealed') && !tc.classList.contains('flagged')) {
                     tc.classList.add('pressed');
                 }
            }
        };
+
        const handleTouchEnd = (e) => {
+            // Remove visual press state on touch end
             const tc = e.target.closest('.cell'); if (tc) tc.classList.remove('pressed');
-           if (elementTouchTimerId !== null) { clearTimeout(elementTouchTimerId); elementTouchTimerId = null; }
-           if (longPressFlaggedThisTouch) { longPressFlaggedThisTouch = false; e.preventDefault(); }
+
+           // If the long press timer is still running, clear it (touch ended before duration)
+           if (elementTouchTimerId !== null) {
+               clearTimeout(elementTouchTimerId);
+               elementTouchTimerId = null;
+           }
+           // If a long press occurred during this touch, prevent default actions on touchend
+           if (longPressFlaggedThisTouch) {
+               longPressFlaggedThisTouch = false; // Reset flag status
+               e.preventDefault(); // Prevent click event trigger
+           }
        };
+
        const handleTouchMove = (e) => {
+           // If the timer is running, check if the touch has moved significantly
            if (elementTouchTimerId !== null) {
                  const currentX = e.touches[0].clientX; const currentY = e.touches[0].clientY;
                  const deltaX = Math.abs(currentX - startX); const deltaY = Math.abs(currentY - startY);
+
+                 // If moved more than a threshold (e.g., 10px), cancel the long press timer
                  if (deltaX > 10 || deltaY > 10) {
-                     clearTimeout(elementTouchTimerId); elementTouchTimerId = null;
-                     longPressFlaggedThisTouch = false; ignoreNextClick = false;
+                     clearTimeout(elementTouchTimerId);
+                     elementTouchTimerId = null;
+                     longPressFlaggedThisTouch = false; // Ensure flag is reset
+                     ignoreNextClick = false; // Don't ignore click if scrolled
+
+                     // Remove visual press state if touch moves off
                      const tc = e.target.closest('.cell'); if (tc) tc.classList.remove('pressed');
                  }
            }
        };
+
+       // Add the event listeners with passive: false to allow preventDefault
         element.addEventListener('touchstart', handleTouchStart, { passive: false });
         element.addEventListener('touchend', handleTouchEnd, { passive: false });
         element.addEventListener('touchmove', handleTouchMove, { passive: false });
-       element._touchStartHandler = handleTouchStart; element._touchEndHandler = handleTouchEnd; element._touchMoveHandler = handleTouchMove;
-        const handleMouseLeave = () => {
-             clearTimeout(mouseLongPressTimerId); mouseLongPressTimerId = null;
-             longPressJustFinishedMouse = false;
-             if (isLeftMouseDown && pressedCellElement === element) {
-                element.classList.remove('pressed'); pressedCellElement = null;
-             }
-        };
-        element.addEventListener('mouseleave', handleMouseLeave);
-        element._mouseLeaveHandlerLP = handleMouseLeave;
+
+       // Store handlers on the element to allow removal later
+       element._touchStartHandlerLP = handleTouchStart;
+       element._touchEndHandlerLP = handleTouchEnd;
+       element._touchMoveHandlerLP = handleTouchMove;
    }
+
    function removeLongPressListener(element) {
-        if (element._touchStartHandler) { element.removeEventListener('touchstart', element._touchStartHandler, { passive: false }); delete element._touchStartHandler; }
-        if (element._touchEndHandler) { element.removeEventListener('touchend', element._touchEndHandler, { passive: false }); delete element._touchEndHandler; }
-        if (element._touchMoveHandler) { element.removeEventListener('touchmove', element._touchMoveHandler, { passive: false }); delete element._touchMoveHandler; }
-        if (element._mouseLeaveHandlerLP) { element.removeEventListener('mouseleave', element._mouseLeaveHandlerLP); delete element._mouseLeaveHandlerLP; }
+       // Remove the specific long press listeners using the stored references
+        if (element._touchStartHandlerLP) {
+            element.removeEventListener('touchstart', element._touchStartHandlerLP, { passive: false });
+            delete element._touchStartHandlerLP;
+        }
+        if (element._touchEndHandlerLP) {
+            element.removeEventListener('touchend', element._touchEndHandlerLP, { passive: false });
+            delete element._touchEndHandlerLP;
+        }
+        if (element._touchMoveHandlerLP) {
+            element.removeEventListener('touchmove', element._touchMoveHandlerLP, { passive: false });
+            delete element._touchMoveHandlerLP;
+        }
+        // Note: Mouse long press is handled via mouseup/down timers, not separate listeners here.
     }
 
     // --- Settings / UI ---
+
+    // New function to handle difficulty change from dropdown
+    function handleDifficultyChange() {
+        const selectedDifficulty = difficultySelector.value;
+        setDifficulty(selectedDifficulty); // Call existing function
+    }
+
     function toggleSettings() {
-        const settingsPanel = document.getElementById('settings-panel');
-        const overlay = document.getElementById('overlay');
-        const attemptsSpan = document.getElementById('generation-attempts');
-        if(settingsPanel.style.display === "block") {
-            settingsPanel.style.display = "none"; overlay.style.display = 'none';
-             if (noGuessMode && firstClick && generationAttempts > 0) attemptsSpan.textContent = `(${generationAttempts} attempts)`;
-             else attemptsSpan.textContent = '';
+        const isOpen = settingsPanel.classList.contains('open');
+        if (isOpen) {
+            settingsPanel.classList.remove('open');
+            overlay.style.display = 'none';
+             // Restore generation attempts text if relevant
+             if (noGuessMode && firstClick && generationAttempts > 0) {
+                 attemptsSpan.textContent = `(${generationAttempts} attempts)`;
+             } else if (!firstClick && noGuessMode) {
+                 // If game started in no-guess, keep showing attempts
+                 attemptsSpan.textContent = `(${generationAttempts} attempts)`;
+             }
+             else {
+                attemptsSpan.textContent = '';
+             }
         } else {
-            settingsPanel.style.display = "block"; overlay.style.display = 'block';
-            document.getElementById('long-press-delay-value').textContent = longPressDelay;
-             const widthInput = document.getElementById('width'); const heightInput = document.getElementById('height'); const minesInput = document.getElementById('mines');
-            if (currentDifficulty === 'custom') {
-               document.querySelector('.custom-settings').classList.add('active');
-                const maxMines = (parseInt(widthInput.value) * parseInt(heightInput.value)) - 9;
+            // Sync settings panel inputs before opening
+            longPressDelayValueSpan.textContent = longPressDelay;
+            longPressDelayInput.value = longPressDelay;
+            widthInput.value = width;
+            heightInput.value = height;
+            minesInput.value = numMines;
+            playerNameInput.value = playerName;
+            lightModeCheckbox.checked = document.body.classList.contains('light-mode');
+            noGuessCheckbox.checked = noGuessMode;
+            flagMethodSelect.value = flagMethod;
+            chordMethodSelect.value = chordMethod;
+            // Show/hide custom settings section based on current difficulty
+             if (currentDifficulty === 'custom') {
+                customSettingsDiv.classList.add('active');
+                 // Update max mines based on current custom W/H in inputs
+                const currentW = parseInt(widthInput.value) || width;
+                const currentH = parseInt(heightInput.value) || height;
+                const maxMines = (currentW * currentH) - 9;
                 minesInput.max = maxMines > 0 ? maxMines : 1;
-            } else {
-               document.querySelector('.custom-settings').classList.remove('active');
-                const maxMinesStd = (width * height) - 9; minesInput.max = maxMinesStd > 0 ? maxMinesStd : 1;
-            }
-             attemptsSpan.textContent = '';
+             } else {
+                customSettingsDiv.classList.remove('active');
+             }
+            // Clear generation attempts text while settings are open
+            attemptsSpan.textContent = '';
+
+            settingsPanel.classList.add('open');
+            overlay.style.display = 'block';
         }
     }
-    function updateTimerDisplay(){ const e = document.querySelector('#timer > div:nth-child(2)'); if (e) e.textContent = time; }
-    function updateMinesLeftDisplay(){ const e = document.querySelector('#mines-left > div:nth-child(2)'); if (e) e.textContent = minesLeft < 0 ? 0 : minesLeft; }
 
+    // Function to close panels when overlay is clicked
+    function closePanels() {
+        if (settingsPanel.classList.contains('open')) {
+            toggleSettings(); // Close settings panel
+        }
+        if (messageBox.style.display === 'block') {
+             // Decide what clicking overlay does for message box.
+             // Option 1: Do nothing (require button click)
+             // Option 2: Close it (like restart)
+             // Let's go with Option 1 for now. User must click Restart.
+             // messageBox.style.display = 'none';
+             // overlay.style.display = 'none';
+        }
+    }
+
+    // Update timer display with fixed decimal places
+    function updateTimerDisplay(){
+        if (timerDisplay) {
+            timerDisplay.textContent = time.toFixed(3);
+        }
+    }
+    function updateMinesLeftDisplay(){ if (minesLeftDisplay) minesLeftDisplay.textContent = minesLeft < 0 ? 0 : minesLeft; }
+
+    // Modified setDifficulty to handle dropdown update and custom state
     function setDifficulty(difficulty) {
+      const needsRestart = currentDifficulty !== difficulty || difficulty === 'custom'; // Restart if difficulty changes, or if switching TO custom (to potentially apply new values)
       currentDifficulty = difficulty;
-      const customSettings = document.querySelector('.custom-settings');
-      const minesInput = document.getElementById('mines'); const widthInput = document.getElementById('width'); const heightInput = document.getElementById('height');
-      document.getElementById('generation-attempts').textContent = '';
-      switch (difficulty) {
-        case 'beginner': width = 9; height = 9; numMines = 10; customSettings.classList.remove('active'); break;
-        case 'intermediate': width = 16; height = 16; numMines = 40; customSettings.classList.remove('active'); break;
-        case 'expert': width = 30; height = 16; numMines = 99; customSettings.classList.remove('active'); break;
-        case 'custom':
-          customSettings.classList.add('active');
-            widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
-            const maxMinesCustom = (width * height) - 9; minesInput.max = maxMinesCustom > 0 ? maxMinesCustom : 1;
-            return; // Don't restart yet for custom, wait for apply
+      difficultySelector.value = currentDifficulty; // Sync dropdown
+
+      attemptsSpan.textContent = ''; // Clear generation attempts on difficulty change
+
+      if (difficulty === 'custom') {
+          customSettingsDiv.classList.add('active');
+          // Update width/height/mines based on current game state IF NOT already custom
+          // If it IS already custom, the inputs should retain their values for editing.
+          if (!customSettingsDiv.classList.contains('active-before-change')) {
+               widthInput.value = width;
+               heightInput.value = height;
+               minesInput.value = numMines;
+          }
+          const maxMinesCustom = (parseInt(widthInput.value) * parseInt(heightInput.value)) - 9;
+          minesInput.max = maxMinesCustom > 0 ? maxMinesCustom : 1;
+          customSettingsDiv.classList.add('active-before-change'); // Mark it was active
+
+          // Don't automatically restart when selecting 'custom' from dropdown.
+          // Restart only happens when applying custom settings or changing FROM custom.
+          return; // Exit early
+      } else {
+           customSettingsDiv.classList.remove('active');
+           customSettingsDiv.classList.remove('active-before-change'); // Unmark active state
+           switch (difficulty) {
+               case 'beginner': width = 9; height = 9; numMines = 10; break;
+               case 'intermediate': width = 16; height = 16; numMines = 40; break;
+               case 'expert': width = 30; height = 16; numMines = 99; break;
+           }
+            // Update inputs in settings panel to reflect standard difficulty
+            widthInput.value = width;
+            heightInput.value = height;
+            minesInput.value = numMines;
+            const maxMinesStandard = (width * height) - 9;
+            minesInput.max = maxMinesStandard > 0 ? maxMinesStandard : 1;
       }
-        widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
-        const maxMinesStandard = (width * height) - 9; minesInput.max = maxMinesStandard > 0 ? maxMinesStandard : 1;
-        localStorage.setItem('currentDifficulty', currentDifficulty); localStorage.setItem('width', width); localStorage.setItem('height', height); localStorage.setItem('numMines', numMines);
-        minesLeft = numMines;
-        restartGame();
-    }
 
-   function applySettings() {
-        const widthInput = document.getElementById('width'); const heightInput = document.getElementById('height'); const minesInput = document.getElementById('mines');
-        if (currentDifficulty === 'custom') {
-            const newWidth = parseInt(widthInput.value); const newHeight = parseInt(heightInput.value); const newNumMines = parseInt(minesInput.value);
-             if (isNaN(newWidth) || newWidth < 5 || newWidth > 50) { alert('Width must be between 5 and 50.'); return; }
-             if (isNaN(newHeight) || newHeight < 5 || newHeight > 50) { alert('Height must be between 5 and 50.'); return; }
-             const maxMines = (newWidth * newHeight) - 9; minesInput.max = maxMines > 0 ? maxMines : 1;
-             if (isNaN(newNumMines) || newNumMines < 1 || newNumMines > maxMines) { alert(`Mines must be between 1 and ${maxMines}.`); return; }
-             width = newWidth; height = newHeight; numMines = newNumMines;
-        } else {
-              switch (currentDifficulty) {
-                  case 'beginner': width = 9; height = 9; numMines = 10; break;
-                  case 'intermediate': width = 16; height = 16; numMines = 40; break;
-                  case 'expert': width = 30; height = 16; numMines = 99; break;
-              }
-               widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
-               const maxMinesStd = (width * height) - 9; minesInput.max = maxMinesStd > 0 ? maxMinesStd : 1;
-        }
-        playerName = document.getElementById('player-name').value.trim() || "Player"; localStorage.setItem('playerName', playerName); document.getElementById('player-name').value = playerName;
-        const lightModeCheckbox = document.getElementById('light-mode');
-        flagMethod = document.getElementById('flag-method').value;
-        longPressDelay = parseInt(document.getElementById('long-press-delay').value);
-        chordMethod = document.getElementById('chord-method').value;
-        noGuessMode = document.getElementById('no-guess-mode').checked;
-
-        localStorage.setItem('darkMode', lightModeCheckbox.checked ? 'enabled' : 'disabled');
-        localStorage.setItem('flagMethod', flagMethod);
-        localStorage.setItem('longPressDelay', longPressDelay);
-        localStorage.setItem('chordMethod', chordMethod);
-        localStorage.setItem('noGuessMode', noGuessMode);
+        // Save standard difficulty settings immediately
         localStorage.setItem('currentDifficulty', currentDifficulty);
         localStorage.setItem('width', width);
         localStorage.setItem('height', height);
         localStorage.setItem('numMines', numMines);
 
-        // Update theme and logo based on light mode state
-        const logoElement = document.getElementById('logo');
-        if (lightModeCheckbox.checked) {
-            document.body.classList.add('light-mode');
-            document.getElementById('settings-panel').style.backgroundColor="white";
-            document.getElementById('message-box').style.backgroundColor="white";
-            if (logoElement) logoElement.src = "/LightModeLogo.svg"; // Set light mode logo
+        minesLeft = numMines; // Reset mines counter for the new difficulty
+
+        if (needsRestart) {
+            restartGame(); // Restart only if difficulty actually changed
+        }
+    }
+
+   function applySettings() {
+        // --- Apply Custom Difficulty Settings ---
+        if (currentDifficulty === 'custom') {
+            const newWidth = parseInt(widthInput.value);
+            const newHeight = parseInt(heightInput.value);
+            const newNumMines = parseInt(minesInput.value);
+
+             // Validation
+             if (isNaN(newWidth) || newWidth < 5 || newWidth > 50) { alert('Width must be between 5 and 50.'); return; }
+             if (isNaN(newHeight) || newHeight < 5 || newHeight > 50) { alert('Height must be between 5 and 50.'); return; }
+             const maxMines = (newWidth * newHeight) - 9;
+             minesInput.max = maxMines > 0 ? maxMines : 1; // Update max attribute dynamically
+             if (isNaN(newNumMines) || newNumMines < 1 || newNumMines > maxMines) { alert(`Mines must be between 1 and ${maxMines}.`); return; }
+
+             // Apply valid custom settings
+             width = newWidth;
+             height = newHeight;
+             numMines = newNumMines;
+             localStorage.setItem('width', width);
+             localStorage.setItem('height', height);
+             localStorage.setItem('numMines', numMines);
         } else {
-            document.body.classList.remove('light-mode');
-            document.getElementById('settings-panel').style.backgroundColor="var(--container-bg)";
-            document.getElementById('message-box').style.backgroundColor="var(--container-bg)";
-             if (logoElement) logoElement.src = "/DarkModeLogo.svg"; // Set dark mode logo
+            // If not custom, settings like W/H/Mines are already set by setDifficulty
+            // Ensure inputs reflect the selected standard difficulty (already done in setDifficulty)
         }
 
-        minesLeft = numMines; restartGame(); toggleSettings();
+        // --- Apply General Settings ---
+        playerName = playerNameInput.value.trim() || "Player";
+        playerNameInput.value = playerName; // Update input field in case of trimming/default
+
+        const isLightMode = lightModeCheckbox.checked;
+        flagMethod = flagMethodSelect.value;
+        longPressDelay = parseInt(longPressDelayInput.value);
+        chordMethod = chordMethodSelect.value;
+        noGuessMode = noGuessCheckbox.checked;
+
+
+        // --- Save Settings to localStorage ---
+        localStorage.setItem('playerName', playerName);
+        localStorage.setItem('darkMode', isLightMode ? 'enabled' : 'disabled'); // 'enabled' means light mode here
+        localStorage.setItem('flagMethod', flagMethod);
+        localStorage.setItem('longPressDelay', longPressDelay);
+        localStorage.setItem('chordMethod', chordMethod);
+        localStorage.setItem('noGuessMode', noGuessMode);
+        localStorage.setItem('currentDifficulty', currentDifficulty); // Save current difficulty type
+
+        // --- Update UI based on Settings ---
+        // Theme and Logo
+        if (isLightMode) {
+            document.body.classList.add('light-mode');
+            if (logoElement) logoElement.src = "/LightModeLogo.svg";
+        } else {
+            document.body.classList.remove('light-mode');
+            if (logoElement) logoElement.src = "/DarkModeLogo.svg";
+        }
+
+        // Update flag listeners immediately
+        updateAllFlagMethodListeners();
+
+        // --- Restart and Close ---
+        minesLeft = numMines; // Reset mine counter
+        restartGame(); // Restart to apply grid size/mine count changes
+        toggleSettings(); // Close the settings panel
     }
-    function showMessage(message) { document.getElementById('message-text').textContent = message; document.getElementById('message-box').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
+    function showMessage(message) {
+         messageText.textContent = message;
+         messageBox.style.display = 'block';
+         overlay.style.display = 'block'; // Show overlay for message box too
+         // Ensure settings panel is closed if message appears
+         if (settingsPanel.classList.contains('open')) {
+            settingsPanel.classList.remove('open');
+            // Keep overlay visible for message box
+         }
+    }
 
     function restartGame() {
         stopTimer();
-        time = 0;
+        time = 0.000; // Reset time to float 0.000
         updateTimerDisplay();
         gameStarted = false;
         firstClick = true;
         gameOver = false;
-        minesLeft = numMines;
+        minesLeft = numMines; // Use the current numMines setting
         updateMinesLeftDisplay();
-        generationAttempts = 0;
-        const attemptsSpan = document.getElementById('generation-attempts');
-        if(attemptsSpan) attemptsSpan.textContent = '';
+        generationAttempts = 0; // Reset counter
+        if(attemptsSpan) attemptsSpan.textContent = ''; // Clear display
+
+        // Reset interaction states
         ignoreNextClick = false;
         longPressFlaggedThisTouch = false;
         longPressJustFinishedMouse = false;
@@ -1666,164 +2032,476 @@
             pressedCellElement = null;
         }
         initialMouseDownCell = null;
-        clearTimeout(touchLongPressTimerId);
-        touchLongPressTimerId = null;
-        clearTimeout(mouseLongPressTimerId);
-        mouseLongPressTimerId = null;
-        clearTimeout(doubleTapFlagTimer);
-        doubleTapFlagTimer = null;
-        clearTimeout(doubleTapChordTimer);
-        doubleTapChordTimer = null;
-        document.removeEventListener('mouseup', handleDocumentMouseUp);
+        clearTimeout(touchLongPressTimerId); touchLongPressTimerId = null;
+        clearTimeout(mouseLongPressTimerId); mouseLongPressTimerId = null;
+        clearTimeout(doubleTapFlagTimer); doubleTapFlagTimer = null;
+        clearTimeout(doubleTapChordTimer); doubleTapChordTimer = null;
+        document.removeEventListener('mouseup', handleDocumentMouseUp); // Re-add listener in createGrid
 
         // --- Logic to set dynamic gap classes ---
-        const headerArea = document.getElementById('header-area');
-        const controlsDiv = document.getElementById('controls'); // Get controls div
-
-        if (headerArea && controlsDiv) { // Check both exist
-            // Clear existing gap classes
+        if (headerArea && controlsDiv) {
             headerArea.classList.remove('header-gap-small', 'header-gap-medium', 'header-gap-large');
             controlsDiv.classList.remove('controls-gap-small', 'controls-gap-medium', 'controls-gap-large');
 
             if (width <= 12) { // Small grids
                 headerArea.classList.add('header-gap-small');
-                controlsDiv.classList.add('controls-gap-small'); // Apply small gap to controls
+                controlsDiv.classList.add('controls-gap-small');
             } else if (width <= 22) { // Medium grids
                 headerArea.classList.add('header-gap-medium');
-                controlsDiv.classList.add('controls-gap-medium'); // Apply medium gap to controls
+                controlsDiv.classList.add('controls-gap-medium');
             } else { // Large grids
                 headerArea.classList.add('header-gap-large');
-                controlsDiv.classList.add('controls-gap-large'); // Apply large gap to controls
+                controlsDiv.classList.add('controls-gap-large');
             }
         }
-        // --- End of dynamic gap logic ---
 
+        // Create the new grid
         createGrid();
-        document.getElementById('message-box').style.display = 'none';
-        document.getElementById('overlay').style.display = 'none';
-        updateFlagMethod();
+
+        // Hide message box and overlay (unless settings panel is open)
+        messageBox.style.display = 'none';
+        if (!settingsPanel.classList.contains('open')) {
+            overlay.style.display = 'none';
+        }
+
+        // Ensure flag listeners are correct for the loaded settings
+        updateAllFlagMethodListeners();
     }
 
-    document.getElementById('long-press-delay').addEventListener('input', (event) => { document.getElementById('long-press-delay-value').textContent = event.target.value; longPressDelay = parseInt(event.target.value); });
+    // Listener for long press delay slider
+    longPressDelayInput.addEventListener('input', (event) => {
+        longPressDelayValueSpan.textContent = event.target.value;
+        longPressDelay = parseInt(event.target.value);
+        // No need to save to localStorage here, only on Apply
+    });
 
     // --- Leaderboard Handling ---
-    function getLeaderboardDifficultyString() { if (currentDifficulty === 'custom') return null; let ds = currentDifficulty; if (noGuessMode) ds += "_noguess"; return ds; }
+    function getLeaderboardDifficultyString() {
+        // Only submit for standard difficulties
+        if (currentDifficulty === 'custom') return null;
+        let ds = currentDifficulty;
+        if (noGuessMode) ds += "_noguess"; // Append suffix for no guess mode
+        return ds;
+    }
+
     function updateLeaderboard() {
-        const difficultyString = getLeaderboardDifficultyString(); if (!difficultyString) { console.log("Score not submitted for custom."); return; }
-         const currentName = document.getElementById('player-name').value.trim();
+        const difficultyString = getLeaderboardDifficultyString();
+         if (!difficultyString) {
+             console.log("Score not submitted for custom difficulty.");
+             return; // Don't submit custom scores
+         }
+
+         // Use trimmed player name from input, default to "Player" if empty
+         const currentName = playerNameInput.value.trim() || "Player";
+
+          // Basic check: Don't submit default name "Player" or empty names automatically
           if (!currentName || currentName.toLowerCase() === "player") {
-              console.log(`Score not submitted for ${difficultyString}: Enter name.`);
-              let bt = localStorage.getItem(`leaderboard-${difficultyString}`); if (bt === null || time < parseInt(bt)) { localStorage.setItem(`leaderboard-${difficultyString}`, time); bt = time; }
-              const td = document.getElementById(`leaderboard-${difficultyString}-local`); if (td) td.textContent = bt === null ? '-' : bt + 's'; return;
+              console.log(`Score not submitted for ${difficultyString}: Enter a unique name.`);
+              // Update local leaderboard even if not submitting online
+              let bestTimeLocalStr = localStorage.getItem(`leaderboard-${difficultyString}`);
+              let bestTimeLocal = parseFloat(bestTimeLocalStr); // Parse float
+
+              // Comparison with float time
+              if (bestTimeLocalStr === null || isNaN(bestTimeLocal) || time < bestTimeLocal) {
+                   localStorage.setItem(`leaderboard-${difficultyString}`, time.toString()); // Save float as string
+                   bestTimeLocal = time;
+              }
+              const localTimeCell = document.getElementById(`leaderboard-${difficultyString}-local`);
+              // Format local time display
+              if (localTimeCell) localTimeCell.textContent = bestTimeLocalStr === null || isNaN(bestTimeLocal) ? '-' : bestTimeLocal.toFixed(3);
+              return; // Don't proceed with online submission
           }
-         db.collection('leaderboard').add({ playerName: currentName, difficulty: difficultyString, score: time, timestamp: firebase.firestore.FieldValue.serverTimestamp() })
-             .then(() => { console.log(`Score submitted for ${difficultyString}!`); loadOnlineLeaderboard(); })
-             .catch((error) => { console.error(`Error submitting score for ${difficultyString}: `, error); document.getElementById('leaderboard-error').textContent='Error submitting score.'; document.getElementById('leaderboard-error').style.display='block'; });
-         let bt = localStorage.getItem(`leaderboard-${difficultyString}`); if (bt === null || time < parseInt(bt)) { localStorage.setItem(`leaderboard-${difficultyString}`, time); bt = time; }
-         const td = document.getElementById(`leaderboard-${difficultyString}-local`); if (td) td.textContent = bt === null ? '-' : bt + 's';
+
+          // Submit to Firebase
+          db.collection('leaderboard').add({
+              playerName: currentName, // Submit the potentially trimmed name
+              difficulty: difficultyString,
+              score: time, // Save the precise float time
+              timestamp: firebase.firestore.FieldValue.serverTimestamp() // Use server timestamp
+          })
+             .then(() => {
+                 console.log(`Score submitted for ${difficultyString}!`);
+                 loadOnlineLeaderboard(); // Refresh online leaderboard after submission
+             })
+             .catch((error) => {
+                 console.error(`Error submitting score for ${difficultyString}: `, error);
+                 leaderboardErrorDiv.textContent='Error submitting score.';
+                 leaderboardErrorDiv.style.display='block';
+                 leaderboardLoadingDiv.style.display = 'none'; // Hide loading if error occurs
+             });
+
+         // Update local leaderboard regardless of submission success
+         let bestTimeLocalStr = localStorage.getItem(`leaderboard-${difficultyString}`);
+         let bestTimeLocal = parseFloat(bestTimeLocalStr); // Parse float
+
+         // Comparison with float time
+         if (bestTimeLocalStr === null || isNaN(bestTimeLocal) || time < bestTimeLocal) {
+              localStorage.setItem(`leaderboard-${difficultyString}`, time.toString()); // Save float as string
+              bestTimeLocal = time;
+         }
+         const localTimeCell = document.getElementById(`leaderboard-${difficultyString}-local`);
+          // Format local time display
+         if (localTimeCell) localTimeCell.textContent = bestTimeLocalStr === null || isNaN(bestTimeLocal) ? '-' : bestTimeLocal.toFixed(3);
     }
+
+    // Recursive fetch to get enough valid scores (unchanged, seems robust)
     async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [], lastVisible = null) {
-        let q = db.collection('leaderboard').where('difficulty', '==', difficulty).where('score', '>', 0).orderBy('score', 'asc');
-        if (lastVisible) q = q.startAfter(lastVisible);
-        q = q.limit(targetCount);
+        let q = db.collection('leaderboard')
+                  .where('difficulty', '==', difficulty)
+                  .where('score', '>', 0) // Ensure score is positive (can be float)
+                  .orderBy('score', 'asc');
+        if (lastVisible) {
+            q = q.startAfter(lastVisible);
+        }
+        q = q.limit(targetCount * 2); // Fetch more initially to account for invalid data
+
         try {
-            const snaps = await q.get(); const nextLastVisible = snaps.docs[snaps.docs.length - 1]; let added = 0;
-            snaps.forEach((doc) => {
+            const querySnapshot = await q.get();
+            const nextLastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+            let addedCount = 0;
+
+            querySnapshot.forEach((doc) => {
+                if (collectedScores.length >= targetCount) return; // Stop if we have enough
+
                 const data = doc.data();
-                if (typeof data.score === 'number' && data.score > 0 && typeof data.playerName === 'string' && collectedScores.length < targetCount) { collectedScores.push(data); added++; }
-                 else console.warn("Skipping invalid score data:", data);
+                // Basic data validation (score is number and positive)
+                if (typeof data.score === 'number' && data.score >= 0 && // Allow 0.000 score technically
+                    typeof data.playerName === 'string' && data.playerName.trim() !== '')
+                {
+                    collectedScores.push(data);
+                    addedCount++;
+                } else {
+                    console.warn("Skipping invalid score data:", data);
+                }
             });
-            if (collectedScores.length < targetCount && added > 0 && nextLastVisible && snaps.docs.length === targetCount) {
-                return fetchScoresRecursive(difficulty, targetCount - collectedScores.length, collectedScores, nextLastVisible);
-            } else { collectedScores.sort((a, b) => a.score - b.score); return collectedScores; }
-        } catch (error) { console.error(`Error fetching ${difficulty}:`, error); const eDiv=document.getElementById('leaderboard-error'); if(eDiv){eDiv.textContent=`Error loading ${difficulty}.`; eDiv.style.display='block';} return collectedScores; }
+
+            // If we haven't reached the target, and we added scores, and there might be more pages
+            if (collectedScores.length < targetCount && addedCount > 0 && nextLastVisible && querySnapshot.docs.length === (targetCount * 2)) {
+                 console.log(`Fetching more for ${difficulty}, currently have ${collectedScores.length}/${targetCount}`);
+                return fetchScoresRecursive(difficulty, targetCount, collectedScores, nextLastVisible); // Pass collected scores along
+            } else {
+                // Sort final list and take top targetCount
+                // NOTE: Sorting happens later now after adjusting legacy scores
+                // collectedScores.sort((a, b) => a.score - b.score);
+                return collectedScores; //.slice(0, targetCount); // Slicing also happens later
+            }
+        } catch (error) {
+            console.error(`Error fetching scores for ${difficulty}:`, error);
+            const errorDisplay = document.getElementById('leaderboard-error');
+            if(errorDisplay) {
+                 errorDisplay.textContent=`Error loading ${difficulty} leaderboard.`;
+                 errorDisplay.style.display='block';
+            }
+            // Return what we have, sorting/slicing happens later
+            return collectedScores; //.sort((a, b) => a.score - b.score).slice(0, targetCount);
+        }
     }
+
+    /* ----------- MODIFIED: ONLINE LEADERBOARD RENDER w/ LEGACY ICON TOOLTIP ------------ */
     async function loadOnlineLeaderboard() {
-        const loadingDiv = document.getElementById('leaderboard-loading'); const errorDiv = document.getElementById('leaderboard-error');
-        loadingDiv.style.display = 'block'; errorDiv.style.display = 'none';
-        const difficulties = ['beginner', 'intermediate', 'expert', 'beginner_noguess', 'intermediate_noguess', 'expert_noguess'];
-        const targetScoreCount = 10;
-        difficulties.forEach(d => { const lb = document.getElementById(`leaderboard-${d}`); if(lb) lb.innerHTML = ''; });
-        try {
-            const promises = difficulties.map(async (difficulty) => {
-                const lb = document.getElementById(`leaderboard-${difficulty}`); if (!lb) return;
-                lb.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
-                const scores = await fetchScoresRecursive(difficulty, targetScoreCount, []);
-                lb.innerHTML = '';
-                if (scores.length > 0) { let rank = 1; scores.forEach((data) => { const r = lb.insertRow(); r.insertCell().textContent = rank++; const nc = r.insertCell(); nc.textContent = String(data.playerName||'Anon').substring(0, 20); r.insertCell().textContent = data.score + 's'; }); }
-                 else lb.innerHTML = '<tr><td colspan="3">No scores yet.</td></tr>';
-            });
-            await Promise.all(promises); loadingDiv.style.display = 'none';
-        } catch (error) { console.error("Leaderboard loading error:", error); loadingDiv.style.display = 'none'; if (errorDiv.style.display === 'none') { errorDiv.textContent = 'Error loading leaderboards.'; errorDiv.style.display = 'block'; } }
+      leaderboardLoadingDiv.style.display = 'block';
+      leaderboardErrorDiv.style.display = 'none';
+
+      const difficulties = [
+        'beginner','intermediate','expert',
+        'beginner_noguess','intermediate_noguess','expert_noguess'
+      ];
+      const targetCount = 10; // Display top 10
+
+      // Clear existing leaderboard tables first
+      difficulties.forEach(d => {
+        const tbody = document.getElementById(`leaderboard-${d}`);
+        if (tbody) tbody.innerHTML = ''; // Clear previous entries
+      });
+
+      try {
+        const promises = difficulties.map(async diff => {
+          const tbody = document.getElementById(`leaderboard-${diff}`);
+          if (!tbody) return; // Skip if element doesn't exist
+          tbody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>'; // Show loading message
+
+          // Fetch raw scores (recursive handles pagination/validation)
+          const rawScores = await fetchScoresRecursive(diff, targetCount * 2, []); // Fetch more initially
+          tbody.innerHTML = ''; // Clear loading message
+
+          // Adjust legacy scores and sort
+          const adjusted = rawScores.map(s => {
+            const legacy = Number.isInteger(s.score); // Check if score is a whole number
+            // Adjust legacy score to X.999 for sorting/display
+            const adjustedScore = legacy ? s.score + 0.999 : s.score;
+            return { ...s, adjustedScore, legacy }; // Return new object with adjusted score and flag
+          }).sort((a,b) => a.adjustedScore - b.adjustedScore) // Sort by the adjusted score
+            .slice(0, targetCount); // Take only the top N scores after sorting
+
+          // Handle case where no scores are found
+          if(adjusted.length === 0){
+            tbody.innerHTML = '<tr><td colspan="3">No scores yet.</td></tr>';
+            return; // Stop processing for this difficulty
+          }
+
+          // Render the sorted and adjusted scores
+          let rank = 1;
+          adjusted.forEach(data => {
+            const row = tbody.insertRow();
+            // Rank Cell
+            row.insertCell().textContent = rank++;
+            // Name Cell (Sanitized)
+            const nameCell = row.insertCell();
+            // Sanitize name, provide default, limit length
+            nameCell.textContent = sanitize(String(data.playerName || 'Anonymous').slice(0, 20));
+            // Score Cell (Formatted + Legacy Icon)
+            const scoreCell = row.insertCell();
+            const scoreString = data.adjustedScore.toFixed(3);
+            const legacyIconHtml = data.legacy
+                ? ` <span class="legacy-icon" title="Legacy score recorded under the old integer timing system – displayed as the slowest possible time for that second.">🕰️</span>`
+                : '';
+            scoreCell.innerHTML = `${scoreString}${legacyIconHtml}`; // Use innerHTML to add the icon span
+          });
+        });
+
+        // Wait for all leaderboard fetches and rendering to complete
+        await Promise.all(promises);
+        leaderboardLoadingDiv.style.display = 'none'; // Hide overall loading indicator
+      } catch (err) {
+        // Catch any unhandled errors during the process
+        console.error("Overall leaderboard loading/rendering error:", err);
+        leaderboardLoadingDiv.style.display = 'none';
+        // Show a generic error if specific errors weren't already displayed
+        if (leaderboardErrorDiv.style.display === 'none') {
+             leaderboardErrorDiv.textContent = 'Error loading one or more leaderboards.';
+             leaderboardErrorDiv.style.display = 'block';
+        }
+      }
     }
-    function loadLeaderboard() { const difficulties = ['beginner','intermediate','expert','beginner_noguess','intermediate_noguess','expert_noguess']; difficulties.forEach(d => { const bt = localStorage.getItem(`leaderboard-${d}`); const td = document.getElementById(`leaderboard-${d}-local`); if (td) td.textContent = bt === null ? '-' : bt + 's'; }); }
+
+
+    function loadLeaderboard() { // Loads Local scores
+        const difficulties = ['beginner','intermediate','expert','beginner_noguess','intermediate_noguess','expert_noguess'];
+        difficulties.forEach(d => {
+            const bestTimeStr = localStorage.getItem(`leaderboard-${d}`);
+            const bestTime = parseFloat(bestTimeStr); // Parse float
+            const timeCell = document.getElementById(`leaderboard-${d}-local`);
+            if (timeCell) {
+                 // Format local score display
+                 timeCell.textContent = bestTimeStr === null || isNaN(bestTime) ? '-' : bestTime.toFixed(3);
+            }
+        });
+    }
+
     function loadSettings() {
-      playerName = localStorage.getItem('playerName') || 'Player'; document.getElementById('player-name').value = playerName;
-      const savedDarkMode = localStorage.getItem('darkMode'); const lightModeCheckbox = document.getElementById('light-mode');
-       const logoElement = document.getElementById('logo'); // Get logo element here
-      if (savedDarkMode === 'enabled') {
+      playerName = localStorage.getItem('playerName') || 'Player';
+      playerNameInput.value = playerName;
+
+      const savedDarkMode = localStorage.getItem('darkMode'); // 'enabled' means light mode
+      const isLightMode = savedDarkMode === 'enabled';
+      lightModeCheckbox.checked = isLightMode;
+      if (isLightMode) {
           document.body.classList.add('light-mode');
-          lightModeCheckbox.checked = true;
-          document.getElementById('settings-panel').style.backgroundColor="white";
-          document.getElementById('message-box').style.backgroundColor="white";
-          if (logoElement) logoElement.src = "/LightModeLogo.svg"; // Set light mode logo
-      }
-      else {
-          document.body.classList.remove('light-mode');
-          lightModeCheckbox.checked = false;
-          document.getElementById('settings-panel').style.backgroundColor="var(--container-bg)";
-          document.getElementById('message-box').style.backgroundColor="var(--container-bg)";
-           if (logoElement) logoElement.src = "/DarkModeLogo.svg"; // Set dark mode logo
-      }
-
-      flagMethod = localStorage.getItem('flagMethod') || 'longPress'; document.getElementById('flag-method').value = flagMethod; longPressDelay = parseInt(localStorage.getItem('longPressDelay')) || 500; document.getElementById('long-press-delay').value = longPressDelay; document.getElementById('long-press-delay-value').textContent = longPressDelay; chordMethod = localStorage.getItem('chordMethod') || 'singleTap'; document.getElementById('chord-method').value = chordMethod; noGuessMode = localStorage.getItem('noGuessMode') === 'true'; document.getElementById('no-guess-mode').checked = noGuessMode; document.getElementById('generation-attempts').textContent = '';
-      currentDifficulty = localStorage.getItem('currentDifficulty') || 'beginner'; width = parseInt(localStorage.getItem('width')) || 9; height = parseInt(localStorage.getItem('height')) || 9; numMines = parseInt(localStorage.getItem('numMines')) || 10;
-      const minesInput = document.getElementById('mines'); const widthInput = document.getElementById('width'); const heightInput = document.getElementById('height');
-       setDifficulty(currentDifficulty); // This handles non-custom restart
-      if (currentDifficulty === 'custom') { // Handle custom load
-           widthInput.value = width; heightInput.value = height; minesInput.value = numMines;
-           const maxMines = (width * height) - 9; minesInput.max = maxMines > 0 ? maxMines : 1; document.querySelector('.custom-settings').classList.add('active');
-           minesLeft = numMines;
-           // No restart here for custom on load, restartGame called below if needed
+          if (logoElement) logoElement.src = "/LightModeLogo.svg";
       } else {
-          // For standard difficulties, setDifficulty already called restartGame
+          document.body.classList.remove('light-mode');
+          if (logoElement) logoElement.src = "/DarkModeLogo.svg";
       }
 
-      // Ensure restartGame is called to set initial gap class if needed
-      // (e.g., for initial load or if setDifficulty didn't call it for custom)
-      // However, setDifficulty for standard modes *already* calls restartGame.
-      // Only call restart explicitly if it's custom difficulty being loaded.
-      if (currentDifficulty === 'custom') {
-          restartGame();
-      }
+      flagMethod = localStorage.getItem('flagMethod') || 'longPress';
+      flagMethodSelect.value = flagMethod;
 
-      updateFlagMethod();
+      longPressDelay = parseInt(localStorage.getItem('longPressDelay')) || 500;
+      longPressDelayInput.value = longPressDelay;
+      longPressDelayValueSpan.textContent = longPressDelay;
+
+      chordMethod = localStorage.getItem('chordMethod') || 'singleTap';
+      chordMethodSelect.value = chordMethod;
+
+      noGuessMode = localStorage.getItem('noGuessMode') === 'true';
+      noGuessCheckbox.checked = noGuessMode;
+      attemptsSpan.textContent = ''; // Clear attempts on load
+
+      // Load difficulty settings
+      currentDifficulty = localStorage.getItem('currentDifficulty') || 'beginner';
+      width = parseInt(localStorage.getItem('width')) || 9;
+      height = parseInt(localStorage.getItem('height')) || 9;
+      numMines = parseInt(localStorage.getItem('numMines')) || 10;
+
+      // Sync dropdown and potentially trigger setDifficulty logic
+      // Important: Call setDifficulty AFTER loading W/H/Mines from storage
+      // so that if currentDifficulty is 'custom', it uses the loaded values.
+      setDifficulty(currentDifficulty); // This syncs dropdown and potentially restarts
+
+      // If loaded difficulty was custom, ensure inputs are populated correctly
+       if (currentDifficulty === 'custom') {
+           widthInput.value = width;
+           heightInput.value = height;
+           minesInput.value = numMines;
+           const maxMines = (width * height) - 9;
+           minesInput.max = maxMines > 0 ? maxMines : 1;
+           customSettingsDiv.classList.add('active'); // Ensure custom section is visible if loaded
+       }
+
+      // Reset mines left and restart the game with loaded settings
+      minesLeft = numMines;
+      restartGame(); // Call restartGame to build grid with loaded dimensions etc.
+      // updateAllFlagMethodListeners(); called within restartGame via createGrid now
     }
 
     // --- No Guess Mode Solver Logic (unchanged) ---
     function getNeighbors(x, y, W, H) { const n = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (dx === 0 && dy === 0) continue; const nx = x + dx, ny = y + dy; if (nx >= 0 && nx < W && ny >= 0 && ny < H) n.push({ x: nx, y: ny }); } return n; }
      function isSolvableWithoutGuessing(startX, startY) {
-         const solverGrid = Array(height).fill(null).map(() => Array(width).fill(null).map(() => ({ state: -2 })));
-         let revealedCount = 0; let minesFound = 0; const totalNonMines = (width * height) - numMines; const processQueue = []; const W = width; const H = height;
-         const solverReveal = (x, y) => { if (x < 0 || x >= W || y < 0 || y >= H || solverGrid[y]?.[x]?.state !== -2) return false; const cd = grid[y]?.[x]; if (!cd || cd.isMine) return false; const adj = cd.adjacentMines; solverGrid[y][x].state = adj; revealedCount++; if (adj === 0) getNeighbors(x, y, W, H).forEach(n => { if (solverGrid[n.y]?.[n.x]?.state === -2) processQueue.push(n); }); return true; };
-         const solverFlag = (x, y) => { if (x < 0 || x >= W || y < 0 || y >= H || solverGrid[y]?.[x]?.state !== -2) return false; const cd = grid[y]?.[x]; if (!cd || !cd.isMine) return false; solverGrid[y][x].state = -1; minesFound++; return true; };
-         for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const cx=startX+dx, cy=startY+dy; if (cx>=0 && cx<W && cy>=0 && cy<H) solverReveal(cx, cy); }
+         const solverGrid = Array(height).fill(null).map(() => Array(width).fill(null).map(() => ({ state: -2 /* Hidden */ }))); //-1: Flagged, 0-8: Revealed Number
+         let revealedCount = 0; let minesFound = 0; const totalNonMines = (width * height) - numMines;
+         const processQueue = []; const W = width; const H = height;
+
+         const solverReveal = (x, y) => {
+             if (x < 0 || x >= W || y < 0 || y >= H || solverGrid[y]?.[x]?.state !== -2) return false; // Already processed or out of bounds
+             const actualCellData = grid[y]?.[x];
+             if (!actualCellData || actualCellData.isMine) return false; // Cannot reveal a mine
+             const adjacentMines = actualCellData.adjacentMines;
+             solverGrid[y][x].state = adjacentMines; // Mark as revealed with number
+             revealedCount++;
+             if (adjacentMines === 0) { // If it's a '0', add neighbors to process queue
+                 getNeighbors(x, y, W, H).forEach(n => {
+                     if (solverGrid[n.y]?.[n.x]?.state === -2) { // Only queue hidden neighbors
+                         processQueue.push(n);
+                     }
+                 });
+             }
+             return true; // Revealed successfully
+         };
+
+         const solverFlag = (x, y) => {
+             if (x < 0 || x >= W || y < 0 || y >= H || solverGrid[y]?.[x]?.state !== -2) return false; // Already processed or out of bounds
+             const actualCellData = grid[y]?.[x];
+             if (!actualCellData || !actualCellData.isMine) return false; // Can only flag actual mines in solver
+             solverGrid[y][x].state = -1; // Mark as flagged
+             minesFound++;
+             return true; // Flagged successfully
+         };
+
+         // Initial reveal around the starting point (simulates first click)
+         // Ensure startX/startY are valid before accessing grid
+         if(startX >= 0 && startX < W && startY >= 0 && startY < H){
+             for (let dy = -1; dy <= 1; dy++) {
+                 for (let dx = -1; dx <= 1; dx++) {
+                     const cx = startX + dx, cy = startY + dy;
+                     if (cx >= 0 && cx < W && cy >= 0 && cy < H) {
+                         // Use the actual grid data to check if the initial click area is safe
+                         // We only start the solver process from actually revealed safe cells
+                         if(!grid[cy]?.[cx]?.isMine){
+                              solverReveal(cx, cy); // Reveal the 3x3 area if safe
+                         }
+                     }
+                 }
+             }
+         } else {
+              console.error("Invalid start coordinates for solver:", startX, startY);
+              return false; // Cannot solve if start is invalid
+         }
+
+
          let madeProgress = true;
          while (madeProgress) {
              madeProgress = false;
-             while (processQueue.length > 0) { const { x, y } = processQueue.shift(); if (solverGrid[y]?.[x]?.state === -2 && solverReveal(x, y)) madeProgress = true; }
+
+             // 1. Process the queue of neighbors of '0' cells revealed
+             while (processQueue.length > 0) {
+                 const { x, y } = processQueue.shift();
+                 if (solverGrid[y]?.[x]?.state === -2 && solverReveal(x, y)) { // If revealing adds a new cell
+                     madeProgress = true;
+                 }
+             }
+
+             // 2. Apply Basic Logic (Flag obvious mines, Reveal obvious safe cells) iteratively
              let innerProgress = true;
              while(innerProgress){
                  innerProgress = false;
-                 for (let y = 0; y < H; y++) { for (let x = 0; x < W; x++) { if (!solverGrid[y]?.[x]) continue; const cs = solverGrid[y][x].state; if (cs >= 1 && cs <= 8) { const ng = getNeighbors(x, y, W, H); let unk = []; let flg = 0; ng.forEach(n => { const ns = solverGrid[n.y]?.[n.x]?.state; if (ns === -2) unk.push(n); else if (ns === -1) flg++; }); if (flg === cs && unk.length > 0) { unk.forEach(n => { if (solverReveal(n.x, n.y)) { innerProgress = true; madeProgress = true; } }); if(innerProgress) continue; } if (unk.length > 0 && flg + unk.length === cs) { let fail = false; unk.forEach(n => { if (!solverFlag(n.x, n.y)) fail = true; else { innerProgress = true; madeProgress = true; } }); if(fail) return false; if(innerProgress) continue; } } } }
-                 while (processQueue.length > 0) { const { x, y } = processQueue.shift(); if (solverGrid[y]?.[x]?.state === -2 && solverReveal(x, y)) { innerProgress = true; madeProgress = true; } }
-             }
-         }
-         return revealedCount === totalNonMines;
+                 for (let y = 0; y < H; y++) {
+                     for (let x = 0; x < W; x++) {
+                         if (!solverGrid[y]?.[x]) continue;
+                         const cellState = solverGrid[y][x].state;
+
+                         if (cellState >= 1 && cellState <= 8) { // If it's a revealed number cell
+                             const neighbors = getNeighbors(x, y, W, H);
+                             let unknownNeighbors = [];
+                             let flaggedNeighborCount = 0;
+
+                             neighbors.forEach(n => {
+                                 const neighborState = solverGrid[n.y]?.[n.x]?.state;
+                                 if (neighborState === -2) { unknownNeighbors.push(n); } // Hidden neighbor
+                                 else if (neighborState === -1) { flaggedNeighborCount++; } // Flagged neighbor
+                             });
+
+                             // Rule 1: If (number == flagged neighbors), reveal remaining unknown neighbors
+                             if (flaggedNeighborCount === cellState && unknownNeighbors.length > 0) {
+                                 unknownNeighbors.forEach(n => {
+                                     if (solverReveal(n.x, n.y)) { // Try revealing
+                                         innerProgress = true; madeProgress = true;
+                                     }
+                                 });
+                                 if(innerProgress) continue; // Re-start inner loop if progress made
+                             }
+
+                             // Rule 2: If (number == flagged neighbors + unknown neighbors), flag all unknown neighbors
+                             if (unknownNeighbors.length > 0 && (flaggedNeighborCount + unknownNeighbors.length === cellState)) {
+                                 let failedFlag = false;
+                                 unknownNeighbors.forEach(n => {
+                                     if (!solverFlag(n.x, n.y)) { // Try flagging
+                                         // Check if it failed because it's already flagged (which is OK)
+                                         if(solverGrid[n.y]?.[n.x]?.state !== -1) {
+                                             failedFlag = true; // Failed for another reason (e.g., trying to flag non-mine)
+                                         }
+                                     } else {
+                                         innerProgress = true; madeProgress = true;
+                                     }
+                                 });
+                                 if(failedFlag) { console.error("Solver inconsistency: Tried to flag a cell that couldn't be flagged as a mine."); return false; } // Grid is unsolvable or logic error
+                                 if(innerProgress) continue; // Re-start inner loop if progress made
+                             }
+                         }
+                     } // End for x
+                 } // End for y
+
+                 // After iterating all cells, process any newly revealed '0' cells from this inner pass
+                 while (processQueue.length > 0) {
+                    const { x, y } = processQueue.shift();
+                    if (solverGrid[y]?.[x]?.state === -2 && solverReveal(x, y)) {
+                        innerProgress = true; madeProgress = true;
+                    }
+                 }
+
+             } // End while innerProgress
+
+             // If no progress was made in the basic logic application or queue processing, exit outer loop
+             if (!madeProgress) break;
+
+         } // End while madeProgress
+
+         // Solvable if all non-mine cells have been revealed by the solver
+         // Ensure revealedCount > 0 to handle edge cases where the start click might be the only non-mine
+         return revealedCount === totalNonMines && revealedCount > 0;
      }
 
+
+    /* ========= ADDED: CLICK POPUP FOR LEGACY ICON ========= */
+    document.addEventListener('click', e => {
+      // Check if the clicked element itself OR its parent has the legacy-icon class
+      // This helps if the click lands slightly inside/outside the emoji character within the span
+      const legacyIconElement = e.target.closest('.legacy-icon');
+      if (legacyIconElement) {
+        // Use the title attribute from the clicked element for the alert message
+        const message = legacyIconElement.getAttribute('title') || 'Legacy score: recorded before decimal‑precision timing. Value shown is slowest possible within that second.'; // Fallback message
+        alert(message);
+      }
+    });
+
+
     // --- Initialize ---
-    loadSettings(); loadLeaderboard(); loadOnlineLeaderboard();
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSettings();         // Load saved settings first
+        loadLeaderboard();      // Load local scores
+        loadOnlineLeaderboard(); // Load online scores
+        // restartGame() is called within loadSettings() to ensure correct initial state
+    });
+
     </script>
 </body>
 </html>
