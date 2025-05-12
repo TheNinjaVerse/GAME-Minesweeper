@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Min3s – Mobile Minesweeper Game No Guess with Leaderboards</title>
-    <meta name="description" content="Play Minesweeper online at Min3s.click! No ads, Mobile-friendly, no guess mode, and live global leaderboard.">
+    <meta name="description" content="Play Minesweeper online at Min3s.click! No ads, Mobile‑friendly, no‑guess mode, and live global leaderboard.">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <!-- Firebase App (include only once) -->
     <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-app-compat.js"></script>
@@ -267,7 +267,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-width: 60px; /* Ensure minimum width */
+            min-width: 80px; /* Increased min-width to accommodate decimals */
             text-align: center;
         }
         #timer-label, #mines-left-label {
@@ -646,6 +646,11 @@
           left: -9999px;
         }
 
+        /* === ADDED: Legacy-icon tooltip / pointer === */
+        .legacy-icon {
+          cursor: help; /* shows ? cursor on hover */
+          margin-left: 4px; /* Add slight space before icon */
+        }
 
     </style>
 </head>
@@ -666,7 +671,7 @@
                 </div>
                 <div id="timer">
                      <div id="timer-label">Timer</div>
-                    <div>0</div>
+                    <div>0.000</div> <!-- Initial display with decimals -->
                 </div>
             </div>
         </div>
@@ -778,21 +783,21 @@
          <div class="leaderboard-section">
              <h4>Beginner</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-beginner"></tbody>
              </table>
          </div>
          <div class="leaderboard-section">
              <h4>Intermediate</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-intermediate"></tbody>
              </table>
          </div>
          <div class="leaderboard-section">
              <h4>Expert</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-expert"></tbody>
              </table>
          </div>
@@ -801,21 +806,21 @@
          <div class="leaderboard-section">
              <h4>Beginner (No Guess)</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-beginner_noguess"></tbody>
              </table>
          </div>
           <div class="leaderboard-section">
              <h4>Intermediate (No Guess)</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-intermediate_noguess"></tbody>
              </table>
          </div>
           <div class="leaderboard-section">
              <h4>Expert (No Guess)</h4>
              <table>
-                 <thead><tr><th>#</th><th>Name</th><th>Time</th></tr></thead>
+                 <thead><tr><th>#</th><th>Name</th><th>Time (s)</th></tr></thead> <!-- Added (s) -->
                  <tbody id="leaderboard-expert_noguess"></tbody>
              </table>
          </div>
@@ -828,7 +833,7 @@
             <thead>
                 <tr>
                     <th>Difficulty</th>
-                    <th>Best Time</th>
+                    <th>Best Time (s)</th> <!-- Added (s) -->
                 </tr>
             </thead>
             <tbody>
@@ -843,9 +848,18 @@
     </div>
 
     <script>
-     // Firebase configuration (Keep as is)
+     /* =========  SANITISE UTILITY  ========= */
+    function sanitize (str) {
+      // Basic sanitization for leaderboard display
+      if (typeof str !== 'string') return ''; // Handle non-string input
+      return str.replace(/[&<>"'`=\\/]/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;', '=': '&#61;', '/': '&#x2F;'
+      })[s] || s); // Fallback for safety, although regex should cover all
+    }
+
+    /* =========  FIREBASE CONFIG  ========= */
     const firebaseConfig = {
-      apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM", // Replace with your actual API key if necessary
+      apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM",
       authDomain: "min3s-d13d8.firebaseapp.com",
       projectId: "min3s-d13d8",
       storageBucket: "min3s-d13d8.appspot.com",
@@ -853,8 +867,6 @@
       appId: "1:561325595032:web:19657730940427fb4073ed",
       measurementId: "G-N25M3ZT9NQ"
     };
-
-    // Initialize Firebase
     const firebaseApp = firebase.initializeApp(firebaseConfig);
     const db = firebaseApp.firestore();
 
@@ -864,8 +876,10 @@
     let height = 9;
     let numMines = 10;
     let minesLeft = numMines;
-    let timerInterval;
-    let time = 0;
+    let timerDisplayInterval = null; // Renamed from timerInterval
+    let timerStartTime = null; // Timestamp when the timer started (using performance.now())
+    let time = 0.000; // Current elapsed time in seconds
+    const timerUpdateDelay = 50; // How often to update the DISPLAY (in ms) - doesn't affect accuracy
     let gameStarted = false;
     let gameOver = false;
     let firstClick = true;
@@ -947,7 +961,7 @@
         }
       }
       updateMinesLeftDisplay();
-      updateTimerDisplay();
+      updateTimerDisplay(); // Update timer display on creation (shows 0.000)
       gridContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('mouseup', handleDocumentMouseUp); // Global listener remains
     }
@@ -1178,7 +1192,7 @@
                          solvable = true;
                          console.log(`No Guess Mode: Solvable grid found after ${generationAttempts} attempts.`);
                          attemptsSpan.textContent = `(${generationAttempts} attempts)`;
-                         startTimer();
+                         startTimer(); // Start the timer AFTER generation
                          firstClick = false;
                          revealCell(x, y); // Reveal the first clicked cell
                      } else {
@@ -1186,7 +1200,7 @@
                             console.log(`No Guess Mode: Attempt ${generationAttempts}...`);
                             attemptsSpan.textContent = `Generating... (${generationAttempts})`;
                         }
-                        if (generationAttempts > 5000) { // Timeout
+                        if (generationAttempts > 50000) { // Timeout
                              console.error(`No Guess Mode: Generation timed out after ${generationAttempts} attempts.`);
                              alert(`Failed to generate a solvable grid in No Guess Mode after ${generationAttempts} tries. Try reducing density or grid size, or disable No Guess Mode.`);
                              attemptsSpan.textContent = '(Generation Failed)';
@@ -1200,7 +1214,7 @@
          } else {
              // Normal mode: place mines and reveal
              placeMines(x, y);
-             startTimer();
+             startTimer(); // Start the timer
              firstClick = false;
              revealCell(x, y);
          }
@@ -1373,6 +1387,13 @@
         const cell = grid[y]?.[x];
         if (!cell || cell.isRevealed || cell.isFlagged) return;
 
+        // --- Start timer on first reveal that is NOT the initial click ---
+        // Note: handleFirstClick already calls startTimer, this might be redundant
+        // Let's ensure startTimer is ONLY called by handleFirstClick
+        // if (!gameStarted && !firstClick) {
+        //     startTimer();
+        // }
+
         cell.isRevealed = true;
         cell.element.classList.remove('pressed', 'flagged'); // Remove pressed/flagged states
         cell.element.classList.add('revealed');
@@ -1382,9 +1403,9 @@
             // Game Over - Hit a mine
             cell.element.classList.add('mine'); // Highlight the clicked mine
             cell.element.textContent = "💣";
-            revealAllMines(x, y);
+            revealAllMines(x, y); // This now calls stopTimer inside
             showMessage("Game Over!");
-            stopTimer();
+            // stopTimer(); // Moved inside revealAllMines
         } else {
             // Revealed a safe cell
              cell.element.dataset.adjacent = cell.adjacentMines; // Ensure data attr is set
@@ -1547,9 +1568,9 @@
      }
 
      function revealAllMines(clickedX, clickedY) {
-        if (gameOver) return; // Should already be set, but double check
+        // if (gameOver) return; // Check removed, let stopTimer handle multiple calls safely
         gameOver = true; // Ensure game over state is set
-        stopTimer(); // Stop the timer immediately
+        stopTimer(); // Stop the timer and calculate final time
 
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
@@ -1614,7 +1635,7 @@
     function winGame(autoFlag = true) {
         if (gameOver) return; // Prevent multiple win triggers
         gameOver = true;
-        stopTimer();
+        stopTimer(); // Stop the timer and calculate final time
         console.log("Win condition met!");
 
         let flagsPlaced = 0;
@@ -1640,8 +1661,9 @@
         }
 
         flagIncorrectlyPlaced(); // Mark any incorrect flags visually after win confirmed
-        updateLeaderboard(); // Submit score if applicable
-        showMessage("You Win! Time: " + time + " seconds");
+        updateLeaderboard(); // Submit score if applicable (uses the final 'time' calculated by stopTimer)
+        // Format time in win message (use the final calculated time)
+        showMessage("You Win! Time: " + time.toFixed(3) + " seconds");
 
         // Clear any lingering interaction states
         if (pressedCellElement) { pressedCellElement.classList.remove('pressed'); pressedCellElement = null; }
@@ -1669,26 +1691,53 @@
         }
     }
 
+    // --- NEW Timer Functions using performance.now() ---
+
     function startTimer() {
-        if (!gameStarted) {
+        if (!gameStarted && timerStartTime === null) { // Only start if not already started
             gameStarted = true;
-            time = 0;
-            updateTimerDisplay();
-            clearInterval(timerInterval); // Clear any existing timer
-            timerInterval = setInterval(() => {
-                if (!gameOver) { // Only increment if game is running
-                    time++;
+            timerStartTime = performance.now(); // Record start time
+            time = 0.000; // Reset elapsed time
+            updateTimerDisplay(); // Show 0.000 initially
+
+            // Clear any previous interval just in case
+            clearInterval(timerDisplayInterval);
+
+            // Start interval ONLY for updating the display
+            timerDisplayInterval = setInterval(() => {
+                if (!gameOver && timerStartTime !== null) {
+                    // Calculate elapsed time based on current time and start time
+                    const now = performance.now();
+                    time = (now - timerStartTime) / 1000; // Convert ms to seconds
                     updateTimerDisplay();
                 } else {
-                    stopTimer(); // Stop if game becomes over
+                    // This case should ideally be handled by stopTimer, but as a fallback:
+                    clearInterval(timerDisplayInterval);
+                    timerDisplayInterval = null;
                 }
-            }, 1000);
+            }, timerUpdateDelay); // Update display periodically
         }
     }
+
     function stopTimer() {
-        clearInterval(timerInterval);
-        timerInterval = null; // Clear the interval ID
+        // Clear the display update interval
+        clearInterval(timerDisplayInterval);
+        timerDisplayInterval = null;
+
+        // Calculate final accurate time if the timer was running
+        if (gameStarted && timerStartTime !== null) {
+            const endTime = performance.now();
+            time = (endTime - timerStartTime) / 1000; // Calculate final time in seconds
+            timerStartTime = null; // Reset start time marker
+            // gameStarted should remain true until restart
+        }
+         // Reset timerStartTime regardless, even if game wasn't "started" (e.g., immediate restart)
+        timerStartTime = null;
+
+        // Update display one last time with the final calculated time
+        updateTimerDisplay();
     }
+
 
     // --- Touch / Long Press Handling ---
    function addLongPressListener(element, callback) {
@@ -1856,8 +1905,12 @@
         }
     }
 
-
-    function updateTimerDisplay(){ if (timerDisplay) timerDisplay.textContent = time; }
+    // Update timer display with fixed decimal places
+    function updateTimerDisplay(){
+        if (timerDisplay) {
+            timerDisplay.textContent = time.toFixed(3);
+        }
+    }
     function updateMinesLeftDisplay(){ if (minesLeftDisplay) minesLeftDisplay.textContent = minesLeft < 0 ? 0 : minesLeft; }
 
     // Modified setDifficulty to handle dropdown update and custom state
@@ -1989,10 +2042,10 @@
     }
 
     function restartGame() {
-        stopTimer();
-        time = 0;
-        updateTimerDisplay();
-        gameStarted = false;
+        stopTimer(); // Stops the timer, calculates final time (if running), clears interval/start time
+        time = 0.000; // Reset displayed time value
+        updateTimerDisplay(); // Show 0.000
+        gameStarted = false; // Reset game started flag
         firstClick = true;
         gameOver = false;
         minesLeft = numMines; // Use the current numMines setting
@@ -2069,6 +2122,9 @@
              return; // Don't submit custom scores
          }
 
+         // Use the final 'time' calculated by stopTimer()
+         const finalTime = time; // 'time' variable holds the accurate final time now
+
          // Use trimmed player name from input, default to "Player" if empty
          const currentName = playerNameInput.value.trim() || "Player";
 
@@ -2076,21 +2132,25 @@
           if (!currentName || currentName.toLowerCase() === "player") {
               console.log(`Score not submitted for ${difficultyString}: Enter a unique name.`);
               // Update local leaderboard even if not submitting online
-              let bestTimeLocal = localStorage.getItem(`leaderboard-${difficultyString}`);
-              if (bestTimeLocal === null || time < parseInt(bestTimeLocal)) {
-                   localStorage.setItem(`leaderboard-${difficultyString}`, time);
-                   bestTimeLocal = time;
+              let bestTimeLocalStr = localStorage.getItem(`leaderboard-${difficultyString}`);
+              let bestTimeLocal = parseFloat(bestTimeLocalStr); // Parse float
+
+              // Comparison with float finalTime
+              if (bestTimeLocalStr === null || isNaN(bestTimeLocal) || finalTime < bestTimeLocal) {
+                   localStorage.setItem(`leaderboard-${difficultyString}`, finalTime.toString()); // Save float as string
+                   bestTimeLocal = finalTime;
               }
               const localTimeCell = document.getElementById(`leaderboard-${difficultyString}-local`);
-              if (localTimeCell) localTimeCell.textContent = bestTimeLocal === null ? '-' : bestTimeLocal + 's';
+              // Format local time display
+              if (localTimeCell) localTimeCell.textContent = bestTimeLocalStr === null || isNaN(bestTimeLocal) ? '-' : bestTimeLocal.toFixed(3);
               return; // Don't proceed with online submission
           }
 
           // Submit to Firebase
           db.collection('leaderboard').add({
-              playerName: currentName,
+              playerName: currentName, // Submit the potentially trimmed name
               difficulty: difficultyString,
-              score: time,
+              score: finalTime, // Save the precise float time
               timestamp: firebase.firestore.FieldValue.serverTimestamp() // Use server timestamp
           })
              .then(() => {
@@ -2105,20 +2165,24 @@
              });
 
          // Update local leaderboard regardless of submission success
-         let bestTimeLocal = localStorage.getItem(`leaderboard-${difficultyString}`);
-         if (bestTimeLocal === null || time < parseInt(bestTimeLocal)) {
-              localStorage.setItem(`leaderboard-${difficultyString}`, time);
-              bestTimeLocal = time;
+         let bestTimeLocalStr = localStorage.getItem(`leaderboard-${difficultyString}`);
+         let bestTimeLocal = parseFloat(bestTimeLocalStr); // Parse float
+
+         // Comparison with float finalTime
+         if (bestTimeLocalStr === null || isNaN(bestTimeLocal) || finalTime < bestTimeLocal) {
+              localStorage.setItem(`leaderboard-${difficultyString}`, finalTime.toString()); // Save float as string
+              bestTimeLocal = finalTime;
          }
          const localTimeCell = document.getElementById(`leaderboard-${difficultyString}-local`);
-         if (localTimeCell) localTimeCell.textContent = bestTimeLocal === null ? '-' : bestTimeLocal + 's';
+          // Format local time display
+         if (localTimeCell) localTimeCell.textContent = bestTimeLocalStr === null || isNaN(bestTimeLocal) ? '-' : bestTimeLocal.toFixed(3);
     }
 
     // Recursive fetch to get enough valid scores (unchanged, seems robust)
     async function fetchScoresRecursive(difficulty, targetCount, collectedScores = [], lastVisible = null) {
         let q = db.collection('leaderboard')
                   .where('difficulty', '==', difficulty)
-                  .where('score', '>', 0) // Ensure score is positive
+                  .where('score', '>', 0) // Ensure score is positive (can be float)
                   .orderBy('score', 'asc');
         if (lastVisible) {
             q = q.startAfter(lastVisible);
@@ -2134,8 +2198,8 @@
                 if (collectedScores.length >= targetCount) return; // Stop if we have enough
 
                 const data = doc.data();
-                // Basic data validation
-                if (typeof data.score === 'number' && data.score > 0 &&
+                // Basic data validation (score is number and positive)
+                if (typeof data.score === 'number' && data.score >= 0 && // Allow 0.000 score technically
                     typeof data.playerName === 'string' && data.playerName.trim() !== '')
                 {
                     collectedScores.push(data);
@@ -2151,8 +2215,9 @@
                 return fetchScoresRecursive(difficulty, targetCount, collectedScores, nextLastVisible); // Pass collected scores along
             } else {
                 // Sort final list and take top targetCount
-                collectedScores.sort((a, b) => a.score - b.score);
-                return collectedScores.slice(0, targetCount);
+                // NOTE: Sorting happens later now after adjusting legacy scores
+                // collectedScores.sort((a, b) => a.score - b.score);
+                return collectedScores; //.slice(0, targetCount); // Slicing also happens later
             }
         } catch (error) {
             console.error(`Error fetching scores for ${difficulty}:`, error);
@@ -2161,73 +2226,98 @@
                  errorDisplay.textContent=`Error loading ${difficulty} leaderboard.`;
                  errorDisplay.style.display='block';
             }
-            return collectedScores.sort((a, b) => a.score - b.score).slice(0, targetCount); // Return what we have, sorted
+            // Return what we have, sorting/slicing happens later
+            return collectedScores; //.sort((a, b) => a.score - b.score).slice(0, targetCount);
         }
     }
 
-
+    /* ----------- MODIFIED: ONLINE LEADERBOARD RENDER w/ LEGACY ICON TOOLTIP ------------ */
     async function loadOnlineLeaderboard() {
-        leaderboardLoadingDiv.style.display = 'block';
-        leaderboardErrorDiv.style.display = 'none'; // Hide previous errors
+      leaderboardLoadingDiv.style.display = 'block';
+      leaderboardErrorDiv.style.display = 'none';
 
-        const difficulties = ['beginner', 'intermediate', 'expert', 'beginner_noguess', 'intermediate_noguess', 'expert_noguess'];
-        const targetScoreCount = 10; // Number of scores to display per board
+      const difficulties = [
+        'beginner','intermediate','expert',
+        'beginner_noguess','intermediate_noguess','expert_noguess'
+      ];
+      const targetCount = 10; // Display top 10
 
-        // Clear existing leaderboard tables
-        difficulties.forEach(d => {
-             const tbody = document.getElementById(`leaderboard-${d}`);
-             if(tbody) tbody.innerHTML = ''; // Clear previous entries
+      // Clear existing leaderboard tables first
+      difficulties.forEach(d => {
+        const tbody = document.getElementById(`leaderboard-${d}`);
+        if (tbody) tbody.innerHTML = ''; // Clear previous entries
+      });
+
+      try {
+        const promises = difficulties.map(async diff => {
+          const tbody = document.getElementById(`leaderboard-${diff}`);
+          if (!tbody) return; // Skip if element doesn't exist
+          tbody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>'; // Show loading message
+
+          // Fetch raw scores (recursive handles pagination/validation)
+          const rawScores = await fetchScoresRecursive(diff, targetCount * 2, []); // Fetch more initially
+          tbody.innerHTML = ''; // Clear loading message
+
+          // Adjust legacy scores and sort
+          const adjusted = rawScores.map(s => {
+            const legacy = Number.isInteger(s.score); // Check if score is a whole number
+            // Adjust legacy score to X.999 for sorting/display
+            const adjustedScore = legacy ? s.score + 0.999 : s.score;
+            return { ...s, adjustedScore, legacy }; // Return new object with adjusted score and flag
+          }).sort((a,b) => a.adjustedScore - b.adjustedScore) // Sort by the adjusted score
+            .slice(0, targetCount); // Take only the top N scores after sorting
+
+          // Handle case where no scores are found
+          if(adjusted.length === 0){
+            tbody.innerHTML = '<tr><td colspan="3">No scores yet.</td></tr>';
+            return; // Stop processing for this difficulty
+          }
+
+          // Render the sorted and adjusted scores
+          let rank = 1;
+          adjusted.forEach(data => {
+            const row = tbody.insertRow();
+            // Rank Cell
+            row.insertCell().textContent = rank++;
+            // Name Cell (Sanitized)
+            const nameCell = row.insertCell();
+            // Sanitize name, provide default, limit length
+            nameCell.textContent = sanitize(String(data.playerName || 'Anonymous').slice(0, 20));
+            // Score Cell (Formatted + Legacy Icon)
+            const scoreCell = row.insertCell();
+            const scoreString = data.adjustedScore.toFixed(3);
+            const legacyIconHtml = data.legacy
+                ? ` <span class="legacy-icon" title="Legacy score recorded under the old integer timing system – displayed as the slowest possible time for that second.">🕰️</span>`
+                : '';
+            scoreCell.innerHTML = `${scoreString}${legacyIconHtml}`; // Use innerHTML to add the icon span
+          });
         });
 
-        try {
-            const fetchPromises = difficulties.map(async (difficulty) => {
-                const tbody = document.getElementById(`leaderboard-${difficulty}`);
-                if (!tbody) return; // Skip if element doesn't exist
-
-                tbody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>'; // Show loading message
-
-                // Fetch scores using the recursive function
-                const scores = await fetchScoresRecursive(difficulty, targetScoreCount, []); // Start with empty array
-
-                tbody.innerHTML = ''; // Clear loading message
-
-                if (scores.length > 0) {
-                    let rank = 1;
-                    scores.forEach((data) => {
-                        const row = tbody.insertRow();
-                        row.insertCell().textContent = rank++; // Rank
-                        const nameCell = row.insertCell();
-                        // Sanitize or limit name length
-                        nameCell.textContent = String(data.playerName || 'Anonymous').substring(0, 20);
-                        row.insertCell().textContent = data.score + 's'; // Score
-                    });
-                } else {
-                    // No scores found for this difficulty
-                    tbody.innerHTML = '<tr><td colspan="3">No scores yet.</td></tr>';
-                }
-            });
-
-            await Promise.all(fetchPromises); // Wait for all leaderboards to load
-            leaderboardLoadingDiv.style.display = 'none'; // Hide loading indicator
-
-        } catch (error) {
-            // Catch errors from Promise.all or fetchScoresRecursive if they propagate
-            console.error("Overall leaderboard loading error:", error);
-            leaderboardLoadingDiv.style.display = 'none';
-            if (leaderboardErrorDiv.style.display === 'none') { // Show general error if specific one wasn't shown
-                 leaderboardErrorDiv.textContent = 'Error loading one or more leaderboards.';
-                 leaderboardErrorDiv.style.display = 'block';
-            }
+        // Wait for all leaderboard fetches and rendering to complete
+        await Promise.all(promises);
+        leaderboardLoadingDiv.style.display = 'none'; // Hide overall loading indicator
+      } catch (err) {
+        // Catch any unhandled errors during the process
+        console.error("Overall leaderboard loading/rendering error:", err);
+        leaderboardLoadingDiv.style.display = 'none';
+        // Show a generic error if specific errors weren't already displayed
+        if (leaderboardErrorDiv.style.display === 'none') {
+             leaderboardErrorDiv.textContent = 'Error loading one or more leaderboards.';
+             leaderboardErrorDiv.style.display = 'block';
         }
+      }
     }
+
 
     function loadLeaderboard() { // Loads Local scores
         const difficulties = ['beginner','intermediate','expert','beginner_noguess','intermediate_noguess','expert_noguess'];
         difficulties.forEach(d => {
-            const bestTime = localStorage.getItem(`leaderboard-${d}`);
+            const bestTimeStr = localStorage.getItem(`leaderboard-${d}`);
+            const bestTime = parseFloat(bestTimeStr); // Parse float
             const timeCell = document.getElementById(`leaderboard-${d}-local`);
             if (timeCell) {
-                 timeCell.textContent = bestTime === null ? '-' : bestTime + 's';
+                 // Format local score display
+                 timeCell.textContent = bestTimeStr === null || isNaN(bestTime) ? '-' : bestTime.toFixed(3);
             }
         });
     }
@@ -2288,7 +2378,7 @@
       // updateAllFlagMethodListeners(); called within restartGame via createGrid now
     }
 
-    // --- No Guess Mode Solver Logic (unchanged from original) ---
+    // --- No Guess Mode Solver Logic (unchanged) ---
     function getNeighbors(x, y, W, H) { const n = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (dx === 0 && dy === 0) continue; const nx = x + dx, ny = y + dy; if (nx >= 0 && nx < W && ny >= 0 && ny < H) n.push({ x: nx, y: ny }); } return n; }
      function isSolvableWithoutGuessing(startX, startY) {
          const solverGrid = Array(height).fill(null).map(() => Array(width).fill(null).map(() => ({ state: -2 /* Hidden */ }))); //-1: Flagged, 0-8: Revealed Number
@@ -2322,14 +2412,25 @@
          };
 
          // Initial reveal around the starting point (simulates first click)
-         for (let dy = -1; dy <= 1; dy++) {
-             for (let dx = -1; dx <= 1; dx++) {
-                 const cx = startX + dx, cy = startY + dy;
-                 if (cx >= 0 && cx < W && cy >= 0 && cy < H) {
-                     solverReveal(cx, cy); // Reveal the 3x3 area
+         // Ensure startX/startY are valid before accessing grid
+         if(startX >= 0 && startX < W && startY >= 0 && startY < H){
+             for (let dy = -1; dy <= 1; dy++) {
+                 for (let dx = -1; dx <= 1; dx++) {
+                     const cx = startX + dx, cy = startY + dy;
+                     if (cx >= 0 && cx < W && cy >= 0 && cy < H) {
+                         // Use the actual grid data to check if the initial click area is safe
+                         // We only start the solver process from actually revealed safe cells
+                         if(!grid[cy]?.[cx]?.isMine){
+                              solverReveal(cx, cy); // Reveal the 3x3 area if safe
+                         }
+                     }
                  }
              }
+         } else {
+              console.error("Invalid start coordinates for solver:", startX, startY);
+              return false; // Cannot solve if start is invalid
          }
+
 
          let madeProgress = true;
          while (madeProgress) {
@@ -2378,12 +2479,15 @@
                                  let failedFlag = false;
                                  unknownNeighbors.forEach(n => {
                                      if (!solverFlag(n.x, n.y)) { // Try flagging
-                                         failedFlag = true; // Should not happen if grid generation is correct
+                                         // Check if it failed because it's already flagged (which is OK)
+                                         if(solverGrid[n.y]?.[n.x]?.state !== -1) {
+                                             failedFlag = true; // Failed for another reason (e.g., trying to flag non-mine)
+                                         }
                                      } else {
                                          innerProgress = true; madeProgress = true;
                                      }
                                  });
-                                 if(failedFlag) { /* console.error("Solver tried to flag a non-mine!"); */ return false; } // Grid is unsolvable if this happens
+                                 if(failedFlag) { console.error("Solver inconsistency: Tried to flag a cell that couldn't be flagged as a mine."); return false; } // Grid is unsolvable or logic error
                                  if(innerProgress) continue; // Re-start inner loop if progress made
                              }
                          }
@@ -2406,8 +2510,22 @@
          } // End while madeProgress
 
          // Solvable if all non-mine cells have been revealed by the solver
-         return revealedCount === totalNonMines;
+         // Ensure revealedCount > 0 to handle edge cases where the start click might be the only non-mine
+         return revealedCount === totalNonMines && revealedCount > 0;
      }
+
+
+    /* ========= ADDED: CLICK POPUP FOR LEGACY ICON ========= */
+    document.addEventListener('click', e => {
+      // Check if the clicked element itself OR its parent has the legacy-icon class
+      // This helps if the click lands slightly inside/outside the emoji character within the span
+      const legacyIconElement = e.target.closest('.legacy-icon');
+      if (legacyIconElement) {
+        // Use the title attribute from the clicked element for the alert message
+        const message = legacyIconElement.getAttribute('title') || 'Legacy score: recorded before decimal‑precision timing. Value shown is slowest possible within that second.'; // Fallback message
+        alert(message);
+      }
+    });
 
 
     // --- Initialize ---
