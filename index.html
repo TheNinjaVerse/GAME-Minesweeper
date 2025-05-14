@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Min3s – Mobile Minesweeper Game No Guess with Leaderboards</title>
-    <!-- MODIFIED description -->
     <meta name="description" content="Play Minesweeper online at Min3s.click! No ads, Mobile‑friendly, no‑guess mode, and live global leaderboard.">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <!-- Firebase App (include only once) -->
@@ -861,7 +859,7 @@
 
     /* =========  FIREBASE CONFIG  ========= */
     const firebaseConfig = {
-      apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM", // Replace with your actual API key if necessary
+      apiKey: "AIzaSyAV_27osmUzqrYbJIatByVHigyKh0naSNM",
       authDomain: "min3s-d13d8.firebaseapp.com",
       projectId: "min3s-d13d8",
       storageBucket: "min3s-d13d8.appspot.com",
@@ -878,10 +876,10 @@
     let height = 9;
     let numMines = 10;
     let minesLeft = numMines;
-    let timerInterval;
-    let time = 0.000; // Initialize time as float
-    const timerIncrement = 0.010; // Increment amount in seconds (10ms)
-    const timerDelay = 10; // Interval delay in ms
+    let timerDisplayInterval = null; // Renamed from timerInterval
+    let timerStartTime = null; // Timestamp when the timer started (using performance.now())
+    let time = 0.000; // Current elapsed time in seconds
+    const timerUpdateDelay = 50; // How often to update the DISPLAY (in ms) - doesn't affect accuracy
     let gameStarted = false;
     let gameOver = false;
     let firstClick = true;
@@ -963,7 +961,7 @@
         }
       }
       updateMinesLeftDisplay();
-      updateTimerDisplay(); // Update timer display on creation
+      updateTimerDisplay(); // Update timer display on creation (shows 0.000)
       gridContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('mouseup', handleDocumentMouseUp); // Global listener remains
     }
@@ -1194,7 +1192,7 @@
                          solvable = true;
                          console.log(`No Guess Mode: Solvable grid found after ${generationAttempts} attempts.`);
                          attemptsSpan.textContent = `(${generationAttempts} attempts)`;
-                         startTimer();
+                         startTimer(); // Start the timer AFTER generation
                          firstClick = false;
                          revealCell(x, y); // Reveal the first clicked cell
                      } else {
@@ -1216,7 +1214,7 @@
          } else {
              // Normal mode: place mines and reveal
              placeMines(x, y);
-             startTimer();
+             startTimer(); // Start the timer
              firstClick = false;
              revealCell(x, y);
          }
@@ -1389,6 +1387,13 @@
         const cell = grid[y]?.[x];
         if (!cell || cell.isRevealed || cell.isFlagged) return;
 
+        // --- Start timer on first reveal that is NOT the initial click ---
+        // Note: handleFirstClick already calls startTimer, this might be redundant
+        // Let's ensure startTimer is ONLY called by handleFirstClick
+        // if (!gameStarted && !firstClick) {
+        //     startTimer();
+        // }
+
         cell.isRevealed = true;
         cell.element.classList.remove('pressed', 'flagged'); // Remove pressed/flagged states
         cell.element.classList.add('revealed');
@@ -1398,9 +1403,9 @@
             // Game Over - Hit a mine
             cell.element.classList.add('mine'); // Highlight the clicked mine
             cell.element.textContent = "💣";
-            revealAllMines(x, y);
+            revealAllMines(x, y); // This now calls stopTimer inside
             showMessage("Game Over!");
-            stopTimer();
+            // stopTimer(); // Moved inside revealAllMines
         } else {
             // Revealed a safe cell
              cell.element.dataset.adjacent = cell.adjacentMines; // Ensure data attr is set
@@ -1563,9 +1568,9 @@
      }
 
      function revealAllMines(clickedX, clickedY) {
-        if (gameOver) return; // Should already be set, but double check
+        // if (gameOver) return; // Check removed, let stopTimer handle multiple calls safely
         gameOver = true; // Ensure game over state is set
-        stopTimer(); // Stop the timer immediately
+        stopTimer(); // Stop the timer and calculate final time
 
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
@@ -1630,7 +1635,7 @@
     function winGame(autoFlag = true) {
         if (gameOver) return; // Prevent multiple win triggers
         gameOver = true;
-        stopTimer();
+        stopTimer(); // Stop the timer and calculate final time
         console.log("Win condition met!");
 
         let flagsPlaced = 0;
@@ -1656,8 +1661,8 @@
         }
 
         flagIncorrectlyPlaced(); // Mark any incorrect flags visually after win confirmed
-        updateLeaderboard(); // Submit score if applicable
-        // Format time in win message
+        updateLeaderboard(); // Submit score if applicable (uses the final 'time' calculated by stopTimer)
+        // Format time in win message (use the final calculated time)
         showMessage("You Win! Time: " + time.toFixed(3) + " seconds");
 
         // Clear any lingering interaction states
@@ -1686,27 +1691,53 @@
         }
     }
 
+    // --- NEW Timer Functions using performance.now() ---
+
     function startTimer() {
-        if (!gameStarted) {
+        if (!gameStarted && timerStartTime === null) { // Only start if not already started
             gameStarted = true;
-            time = 0.000; // Reset time to float 0.000
-            updateTimerDisplay();
-            clearInterval(timerInterval); // Clear any existing timer
-            timerInterval = setInterval(() => {
-                if (!gameOver) { // Only increment if game is running
-                    time += timerIncrement; // Increment by fractional amount
+            timerStartTime = performance.now(); // Record start time
+            time = 0.000; // Reset elapsed time
+            updateTimerDisplay(); // Show 0.000 initially
+
+            // Clear any previous interval just in case
+            clearInterval(timerDisplayInterval);
+
+            // Start interval ONLY for updating the display
+            timerDisplayInterval = setInterval(() => {
+                if (!gameOver && timerStartTime !== null) {
+                    // Calculate elapsed time based on current time and start time
+                    const now = performance.now();
+                    time = (now - timerStartTime) / 1000; // Convert ms to seconds
                     updateTimerDisplay();
                 } else {
-                    stopTimer(); // Stop if game becomes over
+                    // This case should ideally be handled by stopTimer, but as a fallback:
+                    clearInterval(timerDisplayInterval);
+                    timerDisplayInterval = null;
                 }
-            }, timerDelay); // Use faster delay
+            }, timerUpdateDelay); // Update display periodically
         }
     }
+
     function stopTimer() {
-        clearInterval(timerInterval);
-        timerInterval = null; // Clear the interval ID
-        updateTimerDisplay(); // Update display one last time to show final value accurately
+        // Clear the display update interval
+        clearInterval(timerDisplayInterval);
+        timerDisplayInterval = null;
+
+        // Calculate final accurate time if the timer was running
+        if (gameStarted && timerStartTime !== null) {
+            const endTime = performance.now();
+            time = (endTime - timerStartTime) / 1000; // Calculate final time in seconds
+            timerStartTime = null; // Reset start time marker
+            // gameStarted should remain true until restart
+        }
+         // Reset timerStartTime regardless, even if game wasn't "started" (e.g., immediate restart)
+        timerStartTime = null;
+
+        // Update display one last time with the final calculated time
+        updateTimerDisplay();
     }
+
 
     // --- Touch / Long Press Handling ---
    function addLongPressListener(element, callback) {
@@ -2011,10 +2042,10 @@
     }
 
     function restartGame() {
-        stopTimer();
-        time = 0.000; // Reset time to float 0.000
-        updateTimerDisplay();
-        gameStarted = false;
+        stopTimer(); // Stops the timer, calculates final time (if running), clears interval/start time
+        time = 0.000; // Reset displayed time value
+        updateTimerDisplay(); // Show 0.000
+        gameStarted = false; // Reset game started flag
         firstClick = true;
         gameOver = false;
         minesLeft = numMines; // Use the current numMines setting
@@ -2091,6 +2122,9 @@
              return; // Don't submit custom scores
          }
 
+         // Use the final 'time' calculated by stopTimer()
+         const finalTime = time; // 'time' variable holds the accurate final time now
+
          // Use trimmed player name from input, default to "Player" if empty
          const currentName = playerNameInput.value.trim() || "Player";
 
@@ -2101,10 +2135,10 @@
               let bestTimeLocalStr = localStorage.getItem(`leaderboard-${difficultyString}`);
               let bestTimeLocal = parseFloat(bestTimeLocalStr); // Parse float
 
-              // Comparison with float time
-              if (bestTimeLocalStr === null || isNaN(bestTimeLocal) || time < bestTimeLocal) {
-                   localStorage.setItem(`leaderboard-${difficultyString}`, time.toString()); // Save float as string
-                   bestTimeLocal = time;
+              // Comparison with float finalTime
+              if (bestTimeLocalStr === null || isNaN(bestTimeLocal) || finalTime < bestTimeLocal) {
+                   localStorage.setItem(`leaderboard-${difficultyString}`, finalTime.toString()); // Save float as string
+                   bestTimeLocal = finalTime;
               }
               const localTimeCell = document.getElementById(`leaderboard-${difficultyString}-local`);
               // Format local time display
@@ -2116,7 +2150,7 @@
           db.collection('leaderboard').add({
               playerName: currentName, // Submit the potentially trimmed name
               difficulty: difficultyString,
-              score: time, // Save the precise float time
+              score: finalTime, // Save the precise float time
               timestamp: firebase.firestore.FieldValue.serverTimestamp() // Use server timestamp
           })
              .then(() => {
@@ -2134,10 +2168,10 @@
          let bestTimeLocalStr = localStorage.getItem(`leaderboard-${difficultyString}`);
          let bestTimeLocal = parseFloat(bestTimeLocalStr); // Parse float
 
-         // Comparison with float time
-         if (bestTimeLocalStr === null || isNaN(bestTimeLocal) || time < bestTimeLocal) {
-              localStorage.setItem(`leaderboard-${difficultyString}`, time.toString()); // Save float as string
-              bestTimeLocal = time;
+         // Comparison with float finalTime
+         if (bestTimeLocalStr === null || isNaN(bestTimeLocal) || finalTime < bestTimeLocal) {
+              localStorage.setItem(`leaderboard-${difficultyString}`, finalTime.toString()); // Save float as string
+              bestTimeLocal = finalTime;
          }
          const localTimeCell = document.getElementById(`leaderboard-${difficultyString}-local`);
           // Format local time display
